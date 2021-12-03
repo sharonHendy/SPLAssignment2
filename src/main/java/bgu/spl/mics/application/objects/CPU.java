@@ -3,6 +3,7 @@ package bgu.spl.mics.application.objects;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Passive object representing a single CPU.
@@ -45,14 +46,11 @@ public class CPU {
 
     /**
      * sets the current dataBatch the CPU is working on, and the number of ticks it takes to process it.
+     * @pre: data.size() != 0
      * @post: currDataBatch != null
      */
     void startProcessing(){
-        if(data.size() == 0){
-            getDataBatches();
-        }
-        currDataBatch = ((ArrayList<DataBatch>)data).get(0); //TODO how should it know if it receaved data batches?
-        ((ArrayList<DataBatch>)data).remove(0);
+        currDataBatch = ((ArrayList<DataBatch>)data).get(0); //TODO how should it know if it received data batches?
         currTick = 0;
 
         switch (currDataBatch.getDataType()){
@@ -83,7 +81,23 @@ public class CPU {
     void doneProcessing(){
         if(currTick >= ticksUntilDone){
             sendDataBatch();
-            startProcessing();
+            ((ArrayList<DataBatch>)data).remove(0);
+
+            if(data.size() == 0){ //waits for the cluster to put batches in its queue
+                Thread t = new Thread(() -> {
+                    while(!hasbatches){
+                        try {
+                            cluster.wait(); //when the cluster puts batches in the CPU queue it does notifyAll
+                        } catch (InterruptedException e) {
+                            getDataBatches();
+                            startProcessing();
+                        }
+                    }
+                });
+                t.start();
+            }else{
+                startProcessing();
+            }
         }
     }
 
