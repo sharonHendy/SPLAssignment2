@@ -3,7 +3,12 @@ package bgu.spl.mics;
 import bgu.spl.mics.example.messages.ExampleEvent;
 import junit.framework.TestCase;
 
+import java.sql.Time;
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 
 public class FutureTest extends TestCase {
@@ -27,9 +32,12 @@ public class FutureTest extends TestCase {
 
     public void testGet() {
         //mb.complete(e,"result");
-        future.resolve("result");
+        future = mb.sendEvent(e);
+        AtomicBoolean flag = new AtomicBoolean(false);
+        Thread t = new Thread(() -> {future.resolve("result"); flag.set(true);});
+
         String result = future.get();
-        assertEquals("result", result);
+        assertTrue("result".equals(result) && flag.get());
     }
 
     public void testResolve() {
@@ -53,7 +61,10 @@ public class FutureTest extends TestCase {
         long timeout = 3L;
         TimeUnit timeUnit = TimeUnit.SECONDS;
         future = mb.sendEvent(e);
-        assertNull(future.get(timeout, timeUnit)); //if future not resolve should to return null
+        LocalTime beforeTime = LocalTime.now();
+        assertNull(future.get(timeout, timeUnit)); //if future is not resolved should to return null
+        LocalTime afterTime = LocalTime.now();
+        assertTrue(beforeTime.until(afterTime, ChronoUnit.MILLIS) < 100); //checks that the get took <timeout> seconds
         future.resolve("result");
         assertEquals(future.get(timeout,timeUnit),"result");
         assertTrue(future.isDone());

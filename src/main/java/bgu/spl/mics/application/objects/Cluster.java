@@ -1,6 +1,8 @@
 package bgu.spl.mics.application.objects;
 
 
+import java.util.Collection;
+
 /**
  * Passive object representing the cluster.
  * <p>
@@ -10,7 +12,8 @@ package bgu.spl.mics.application.objects;
  */
 public class Cluster {
 
-
+	Collection<CPU> CPUS;
+	Collection<GPU> GPUS;
 	/**
      * Retrieves the single instance of this class.
      */
@@ -18,5 +21,11 @@ public class Cluster {
 		//TODO: Implement this
 		return null;
 	}
+
+	void receiveDataBatchFromCPU(DataBatch dataBatch){
+
+	}
+
+
 
 }
