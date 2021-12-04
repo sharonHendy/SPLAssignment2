@@ -48,18 +48,8 @@ public class CPU {
         currDataBatch = ((ArrayList<DataBatch>)data).get(0); //TODO how should it know if it received data batches?
         currTick = 0;
 
-        switch (currDataBatch.getDataType()){
-            case Images -> {
-                ticksUntilDone = (32/cores) * 4;
-            }
-            case Text -> {
-                ticksUntilDone = (32/cores)*2;
-            }
-            case Tabular -> {
-                ticksUntilDone = (32/cores);
-            }
-            default -> ticksUntilDone = (32/cores) * 4;
-        }
+
+        currDataBatch.getDataType();
     }
 
     /**

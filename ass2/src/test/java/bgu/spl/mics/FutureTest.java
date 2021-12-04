@@ -21,8 +21,7 @@ public class FutureTest {
     private static ExampleEvent e;
 
     @Before
-    public void setUp() throws Exception{
-        //super.setUp();
+    public void setUp(){
         //creates event, future for that event, messageBus and MicroService
         e = new ExampleEvent("test");
         future = mb.sendEvent(e);
@@ -33,32 +32,23 @@ public class FutureTest {
 
     @Test
     public void get() {
-        //mb.complete(e,"result");
-        //future = mb.sendEvent(e);
         AtomicBoolean flag = new AtomicBoolean(false);
         Thread t = new Thread(() -> {future.resolve("result"); flag.set(true);});
+        t.start();
         String result = future.get();
         assertTrue("result".equals(result) && flag.get());
     }
 
     @Test
     public void resolve() {
-        if(future.isDone()){
-            future = mb.sendEvent(e); //creates new future it has already been resolved
-        }
         future.resolve("result");
         assertEquals("result", future.get());
     }
 
     @Test
     public void isDone() {
-        if(future.isDone()){
-            assertSame("result",future.get());
-        }
-        else{
-            future.resolve("result");
-            assertTrue(future.isDone());
-        }
+        future.resolve("result");
+        assertTrue(future.isDone());
     }
 
     @Test

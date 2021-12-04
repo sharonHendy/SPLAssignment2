@@ -37,17 +37,13 @@ public class MessageBusTest {
 
     @Test
     public void Complete() {
-        if(!mb.isMicroServiceSubscribedEvent(ms,ExampleEvent.class)){
-            mb.subscribeEvent(ExampleEvent.class,ms);
-        }
+        mb.subscribeEvent(ExampleEvent.class,ms);
         Future<String> futureObject = mb.sendEvent(new ExampleEvent("test"));
         try {
             ExampleEvent message = (ExampleEvent) mb.awaitMessage(ms);
             assertFalse(futureObject.isDone());
-            assertNull(futureObject.get(3l, TimeUnit.SECONDS));
-
+            assertNull(futureObject.get(1l, TimeUnit.SECONDS));
             mb.complete(message,"result");
-
             assertTrue(futureObject.isDone());
             assertEquals(futureObject.get(),"result");
         } catch (InterruptedException ignored) {
@@ -56,11 +52,11 @@ public class MessageBusTest {
 
     @Test
     public void sendBroadcast() {
-        int before = mb.numOfBroadcasts();
+        int before = mb.numOfBroadcastsSent();
         ExampleBroadcast b= new ExampleBroadcast("");
         mb.subscribeBroadcast(b.getClass(),ms);
         mb.sendBroadcast(b);
-        assertEquals(mb.numOfBroadcasts(), before + 1);
+        assertEquals(mb.numOfBroadcastsSent(), before + 1);
         try{
             assertEquals(mb.awaitMessage(ms),b);
         }
@@ -70,11 +66,11 @@ public class MessageBusTest {
 
     @Test
     public void sendEvent(){
-        int before = mb.numOfEvents();
+        int before = mb.numOfEventsSent();
         ExampleEvent e= new ExampleEvent("");
         mb.subscribeEvent(e.getClass(),ms);
         mb.sendEvent(e);
-        assertEquals(mb.numOfEvents(), before + 1);
+        assertEquals(mb.numOfEventsSent(), before + 1);
         try{
             assertEquals(mb.awaitMessage(ms),e);
         }
@@ -95,28 +91,27 @@ public class MessageBusTest {
 
     @Test
     public void awaitMessage() {
-        //mb.register(MessageBusTest.ms);
-        mb.unregister(MessageBusTest.ms);
+        mb.unregister(ms);
         boolean flag = false;
         try {
-            mb.awaitMessage(MessageBusTest.ms);
+            mb.awaitMessage(ms);
         }
         catch (IllegalStateException e){
             flag = true;
         }
         catch (InterruptedException ignored) {}
         assertTrue(flag);
-        mb.register(MessageBusTest.ms);
-        mb.subscribeEvent(ExampleEvent.class, MessageBusTest.ms);
+        mb.register(ms);
+        mb.subscribeEvent(ExampleEvent.class, ms);
         mb.sendEvent(new ExampleEvent(""));
         try{
-            Message m = mb.awaitMessage(MessageBusTest.ms);
+            Message m = mb.awaitMessage(ms);
             assertTrue(m instanceof ExampleEvent);
         }
         catch(InterruptedException ignored){}
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown(){
     }
 }

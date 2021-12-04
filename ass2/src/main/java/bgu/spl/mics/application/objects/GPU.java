@@ -26,13 +26,16 @@ public class GPU {
     private int currNumOfBatches;
     private int numOfProcessedBatchesFromCPU;
     private int numOfProcessedBatchesFromGPU;
-    private int timeUnitsUsed; //for the statistics in cluster
+    public int timeUnitsUsed; //for the statistics in cluster
+    private int tick;
+    private int currTick;
 
-    public GPU(Type t, Cluster c, Collection<DataBatch> d){
+
+    public GPU(Type t, Cluster c, Collection<DataBatch> d,Model m){
         type=t;
         cluster=c;
         unprocessed=d;
-        model= null;
+        model= m;
     }
 
     public GPU(Model m){
@@ -52,7 +55,7 @@ public class GPU {
 
     }
 
-    public void complete(Event e, Model m){
+    public void complete(Event e){
 
     }
 

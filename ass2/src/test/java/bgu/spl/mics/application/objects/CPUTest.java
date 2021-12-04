@@ -11,6 +11,7 @@ public class CPUTest {
     @Before
     public void setUp(){
         CPU= new CPU(3, new Cluster());
+        CPU.getData().add(new DataBatch());
     }
 
     @Test
@@ -27,12 +28,7 @@ public class CPUTest {
 
     @Test
     public void startProcessing() {
-        int size = CPU.getData().size();
         CPU.startProcessing();
-
-        if(size != 0 ){ //checks it took one of the data batches for processing
-            assertEquals(CPU.getData().size(), size - 1);
-        }
         assertNotNull(CPU.getCurrDataBatch());
 
         switch (CPU.getCurrDataBatch().getDataType()){
@@ -51,10 +47,14 @@ public class CPUTest {
 
     @Test
     public void sendDataBatch() {
+        int size= CPU.getData().size();
+        CPU.sendDataBatch();
+        assertEquals(size-1,CPU.getData().size());
     }
 
     @Test
     public void doneProcessing() {
+
     }
 
 

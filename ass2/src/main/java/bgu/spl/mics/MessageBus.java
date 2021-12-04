@@ -109,7 +109,7 @@ public interface MessageBus {
      * @throws InterruptedException if interrupted while waiting for a message
      *                              to became available.
      * @pre:
-     * @post: numOfEvents()+ numOfBroadcast()= @pre:numOfEvents()+ @pre:numOfBroadcast()-1 //TODO
+     * @post:
      */
     Message awaitMessage(MicroService m) throws InterruptedException;
 
@@ -119,7 +119,7 @@ public interface MessageBus {
 
     boolean isMicroServiceRegistered(MicroService m);
 
-    int numOfBroadcasts();
+    int numOfBroadcastsSent();
 
-    int numOfEvents();
+    int numOfEventsSent();
 }

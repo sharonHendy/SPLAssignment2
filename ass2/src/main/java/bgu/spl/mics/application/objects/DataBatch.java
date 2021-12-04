@@ -9,7 +9,7 @@ public class DataBatch {
     private Data data;
     private int sort_index;
 
-    public int getDataType() {
-        return 0;
+    public Data.Type getDataType() {
+        return data.getType();
     }
 }

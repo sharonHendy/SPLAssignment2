@@ -15,8 +15,8 @@ import java.util.Queue;
 public class MessageBusImpl implements MessageBus {
 
 	private HashMap<MicroService, Queue> a;
-	private int numOfEvents;
-	private int numOfBroadcasts;
+	private int numOfEventsSent;
+	private int numOfBroadcastsSent;
 	ArrayList<MicroService> trainModelEventSubscribers;
 	ArrayList<MicroService> testModelEventSubscribers;
 	ArrayList<MicroService> publishResultsEventSubscribers;
@@ -87,13 +87,13 @@ public class MessageBusImpl implements MessageBus {
 	}
 
 	@Override
-	public int numOfBroadcasts() {
-		return numOfBroadcasts;
+	public int numOfBroadcastsSent() {
+		return numOfBroadcastsSent;
 	}
 
 	@Override
-	public int numOfEvents() {
-		return numOfEvents;
+	public int numOfEventsSent() {
+		return numOfEventsSent;
 	}
 
 }
