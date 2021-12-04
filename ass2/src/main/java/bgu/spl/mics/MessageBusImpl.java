@@ -3,7 +3,9 @@ package bgu.spl.mics;
 import bgu.spl.mics.example.messages.ExampleBroadcast;
 import bgu.spl.mics.example.messages.ExampleEvent;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Queue;
 
 /**
  * The {@link MessageBusImpl class is the implementation of the MessageBus interface.
@@ -12,9 +14,12 @@ import java.util.HashMap;
  */
 public class MessageBusImpl implements MessageBus {
 
-	private HashMap a;
+	private HashMap<MicroService, Queue> a;
 	private int numOfEvents;
 	private int numOfBroadcasts;
+	ArrayList<MicroService> trainModelEventSubscribers;
+	ArrayList<MicroService> testModelEventSubscribers;
+	ArrayList<MicroService> publishResultsEventSubscribers;
 
 	@Override
 	public <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m) {

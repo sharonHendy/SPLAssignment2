@@ -44,29 +44,42 @@ public class MessageBusTest {
         try {
             ExampleEvent message = (ExampleEvent) mb.awaitMessage(ms);
             assertFalse(futureObject.isDone());
-            assertEquals(futureObject.get(3l, TimeUnit.SECONDS),null);
+            assertNull(futureObject.get(3l, TimeUnit.SECONDS));
 
             mb.complete(message,"result");
 
             assertTrue(futureObject.isDone());
             assertEquals(futureObject.get(),"result");
-        } catch (InterruptedException e) {
+        } catch (InterruptedException ignored) {
         }
     }
 
     @Test
     public void sendBroadcast() {
         int before = mb.numOfBroadcasts();
-        mb.sendBroadcast(new ExampleBroadcast(""));
-        assertTrue(mb.numOfBroadcasts() == before +1);
+        ExampleBroadcast b= new ExampleBroadcast("");
+        mb.subscribeBroadcast(b.getClass(),ms);
+        mb.sendBroadcast(b);
+        assertEquals(mb.numOfBroadcasts(), before + 1);
+        try{
+            assertEquals(mb.awaitMessage(ms),b);
+        }
+        catch (InterruptedException ignored){}
     }
 
 
     @Test
-    public void sendEvent() {
+    public void sendEvent(){
         int before = mb.numOfEvents();
-        mb.sendEvent(new ExampleEvent(""));
-        assertTrue(mb.numOfEvents() == before +1);
+        ExampleEvent e= new ExampleEvent("");
+        mb.subscribeEvent(e.getClass(),ms);
+        mb.sendEvent(e);
+        assertEquals(mb.numOfEvents(), before + 1);
+        try{
+            assertEquals(mb.awaitMessage(ms),e);
+        }
+        catch (InterruptedException ignored){}
+
     }
 
     @Test
@@ -82,22 +95,22 @@ public class MessageBusTest {
 
     @Test
     public void awaitMessage() {
-        mb.register(ms);
-        mb.unregister(ms);
+        //mb.register(MessageBusTest.ms);
+        mb.unregister(MessageBusTest.ms);
         boolean flag = false;
         try {
-            mb.awaitMessage(ms);
+            mb.awaitMessage(MessageBusTest.ms);
         }
         catch (IllegalStateException e){
             flag = true;
         }
         catch (InterruptedException ignored) {}
         assertTrue(flag);
-        mb.register(ms);
-        mb.subscribeEvent(ExampleEvent.class,ms);
+        mb.register(MessageBusTest.ms);
+        mb.subscribeEvent(ExampleEvent.class, MessageBusTest.ms);
         mb.sendEvent(new ExampleEvent(""));
         try{
-            Message m = mb.awaitMessage(ms);
+            Message m = mb.awaitMessage(MessageBusTest.ms);
             assertTrue(m instanceof ExampleEvent);
         }
         catch(InterruptedException ignored){}

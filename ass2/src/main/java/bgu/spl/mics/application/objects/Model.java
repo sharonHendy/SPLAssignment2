@@ -17,4 +17,8 @@ public class Model {
     private Student student;
     private Status status;
     private Results results;
+
+    public Results getResults() {
+        return results;
+    }
 }

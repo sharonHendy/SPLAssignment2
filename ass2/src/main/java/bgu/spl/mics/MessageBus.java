@@ -42,7 +42,7 @@ public interface MessageBus {
      * @param <T>    The type of the result expected by the completed event.
      * @param e      The completed event.
      * @param result The resolved result of the completed event.
-     * @pre: sendEvent(e).get()==null 
+     * @pre: sendEvent(e).get()==null
      * @pre: sendEvent(e).isDone()==false
      * @post: sendEvent(e).get()==result
      * @post: sendEvent(e).isDone()==true
@@ -55,7 +55,7 @@ public interface MessageBus {
      * <p>
      * @param b 	The message to added to the queues.
      * @pre:
-     * @post:
+     * @post: numOfBroadcasts()= @pre:numOfBroadcasts()+1
      */
     void sendBroadcast(Broadcast b);
 
@@ -69,7 +69,7 @@ public interface MessageBus {
      * @return {@link Future<T>} object to be resolved once the processing is complete,
      * 	       null in case no micro-service has subscribed to {@code e.getClass()}.
      * @pre:
-     * @post:
+     * @post: numOfEvents()= @pre:numOfEvents()+1
      */
     <T> Future<T> sendEvent(Event<T> e);
 
@@ -109,7 +109,7 @@ public interface MessageBus {
      * @throws InterruptedException if interrupted while waiting for a message
      *                              to became available.
      * @pre:
-     * @post:
+     * @post: numOfEvents()+ numOfBroadcast()= @pre:numOfEvents()+ @pre:numOfBroadcast()-1 //TODO
      */
     Message awaitMessage(MicroService m) throws InterruptedException;
 

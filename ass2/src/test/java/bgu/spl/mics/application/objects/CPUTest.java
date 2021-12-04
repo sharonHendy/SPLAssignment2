@@ -19,9 +19,34 @@ public class CPUTest {
         CPU.updateTick();
         assertEquals(currTick, currTick + 1);
     }
+    @Test
+    public void getDataBatches() {
+        CPU.getDataBatches();
+        assertTrue(CPU.getData().size() != 0);
+    }
 
     @Test
     public void startProcessing() {
+        int size = CPU.getData().size();
+        CPU.startProcessing();
+
+        if(size != 0 ){ //checks it took one of the data batches for processing
+            assertEquals(CPU.getData().size(), size - 1);
+        }
+        assertNotNull(CPU.getCurrDataBatch());
+
+        switch (CPU.getCurrDataBatch().getDataType()){
+            case Images -> {
+                assertEquals(CPU.getTicksUntilDone(),(32/CPU.getCores()) * 4);
+            }
+            case Text -> {
+                assertEquals(CPU.getTicksUntilDone(),(32/CPU.getCores()) * 2);
+            }
+            case Tabular -> {
+                assertEquals(CPU.getTicksUntilDone(),32/CPU.getCores());
+            }
+            default -> assertEquals(CPU.getTicksUntilDone(),32/CPU.getCores());
+        }
     }
 
     @Test
@@ -31,4 +56,6 @@ public class CPUTest {
     @Test
     public void doneProcessing() {
     }
+
+
 }

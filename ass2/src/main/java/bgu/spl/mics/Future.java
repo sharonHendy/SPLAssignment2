@@ -37,7 +37,8 @@ public class Future<T> {
 	/**
      * Resolves the result of this Future object.
 	 * @pre: this.isDone()==false
-	 * @post: this.isDone()== true, future.get()==result
+	 * @post: this.isDone()== true
+	 * @post: future.get()==result
      */
 	public void resolve (T result) {
 		//TODO: implement this.
