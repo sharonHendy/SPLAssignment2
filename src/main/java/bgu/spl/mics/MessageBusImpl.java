@@ -69,6 +69,31 @@ public class MessageBusImpl implements MessageBus {
 	}
 
 	@Override
+	public <T> boolean isMicroServiceSubscribedEvent(MicroService m, Class<? extends Event<T>> type) {
+		return false;
+	}
+
+	@Override
+	public boolean isMicroServiceSubscribedBroadcast(MicroService m, Class<? extends Broadcast> type) {
+		return false;
+	}
+
+	@Override
+	public boolean isMicroServiceRegistered(MicroService m) {
+		return false;
+	}
+
+	@Override
+	public int numOfBroadcastsSent() {
+		return 0;
+	}
+
+	@Override
+	public int numOfEventsSent() {
+		return 0;
+	}
+
+	@Override
 	public <T> boolean isMicroServiceRegisteredEvent(MicroService m, Class<? extends Event<T>> type) {
 		return false;
 	}

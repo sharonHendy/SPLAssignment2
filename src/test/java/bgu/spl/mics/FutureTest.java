@@ -3,22 +3,19 @@ package bgu.spl.mics;
 import bgu.spl.mics.example.messages.ExampleEvent;
 import junit.framework.TestCase;
 
-import java.sql.Time;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 
 public class FutureTest extends TestCase {
-    private MessageBus mb;
-    private MicroService ms;
-    private Future<String> future;
-    private ExampleEvent e;
+    private static MessageBus mb;
+    private static MicroService ms;
+    private static Future<String> future;
+    private static ExampleEvent e;
 
-    public void setUp() throws Exception {
-        super.setUp();
+    public void setUp(){
         //creates event, future for that event, messageBus and MicroService
         e = new ExampleEvent("test");
         future = mb.sendEvent(e);
@@ -31,30 +28,22 @@ public class FutureTest extends TestCase {
     }
 
     public void testGet() {
-        //mb.complete(e,"result");
-        future = mb.sendEvent(e);
         AtomicBoolean flag = new AtomicBoolean(false);
         Thread t = new Thread(() -> {future.resolve("result"); flag.set(true);});
-
+        t.start();
         String result = future.get();
+
         assertTrue("result".equals(result) && flag.get());
     }
 
     public void testResolve() {
-        if(future.isDone()){
-            future = mb.sendEvent(e); //creates new future it has already been resolved
-        }
         future.resolve("result");
         assertEquals("result", future.get());
     }
 
     public void testIsDone() {
-        if(future.isDone()){
-            assertSame("result",future.get());
-        }else{
-            future.resolve("result");
-            assertEquals("result", future.get());
-        }
+        future.resolve("result");
+        assertTrue(future.isDone());
     }
 
     public void testTestGet() { //test get with timeout
@@ -67,6 +56,5 @@ public class FutureTest extends TestCase {
         assertTrue(beforeTime.until(afterTime, ChronoUnit.MILLIS) < 100); //checks that the get took <timeout> seconds
         future.resolve("result");
         assertEquals(future.get(timeout,timeUnit),"result");
-        assertTrue(future.isDone());
     }
 }

@@ -12,14 +12,18 @@ import java.util.Collection;
  */
 public class Cluster {
 
-	Collection<CPU> CPUS;
-	Collection<GPU> GPUS;
+	private Collection<CPU> CPUS;
+	private Collection<GPU> GPUS;
 	/**
      * Retrieves the single instance of this class.
      */
 	public static Cluster getInstance() {
 		//TODO: Implement this
 		return null;
+	}
+
+	boolean hasDataBatches(CPU CPU){
+		return true;
 	}
 
 	void receiveDataBatchFromCPU(DataBatch dataBatch){

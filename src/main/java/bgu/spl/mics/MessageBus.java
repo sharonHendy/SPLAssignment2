@@ -98,9 +98,8 @@ public interface MessageBus {
 
     <T> boolean isMicroServiceSubscribedEvent(MicroService m, Class<? extends Event<T>> type);
     boolean isMicroServiceSubscribedBroadcast(MicroService m, Class<? extends Broadcast> type);
-
     boolean isMicroServiceRegistered(MicroService m);
-    int numOfBroadcasts();
-    int numOfEvents();
+    int numOfBroadcastsSent();
+    int numOfEventsSent();
     
 }

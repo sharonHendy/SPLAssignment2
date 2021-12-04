@@ -1,9 +1,7 @@
 package bgu.spl.mics.application.objects;
 
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Passive object representing a single CPU.
@@ -19,16 +17,18 @@ public class CPU {
     private int currTick;
     private DataBatch currDataBatch;
     private int ticksUntilDone;
+    private boolean isProcessing; //true if the CPU is currently processing a batch or just created
 
     CPU(int cores, Cluster cluster){
         this.cores = cores;
         data = new ArrayList<>();
         this.cluster = cluster;
         currTick = 0;
+        isProcessing = true;
     }
 
     /**
-     *the CPUService will call this method when it receives e tickBroadcast from the messageBus.
+     *the CPUService will call this method when it receives a tickBroadcast from the messageBus.
      *@post: @currTick - @pre currTick == 1
      */
     void updateTick(){
@@ -50,10 +50,9 @@ public class CPU {
      * @post: currDataBatch != null
      */
     void startProcessing(){
-        currDataBatch = ((ArrayList<DataBatch>)data).get(0); //TODO how should it know if it received data batches?
-        currTick = 0;
+        currDataBatch = ((ArrayList<DataBatch>)data).get(0);
 
-        switch (currDataBatch.getDataType()){
+        switch (currDataBatch.getDataType()){ //TODO if
             case Images -> {
                 ticksUntilDone = (32/cores) * 4;
             }
@@ -65,6 +64,9 @@ public class CPU {
             }
             default -> ticksUntilDone = (32/cores) * 4;
         }
+
+        currTick = 0;
+        isProcessing = true; //ready for ticks
     }
 
     /**
@@ -79,20 +81,21 @@ public class CPU {
      * if so starts the processing of another batch.
      */
     void doneProcessing(){
-        if(currTick >= ticksUntilDone){
+        if(isProcessing & currTick >= ticksUntilDone){
+            isProcessing = false; //ignores ticks until it started processing a new batch
             sendDataBatch();
             ((ArrayList<DataBatch>)data).remove(0);
 
             if(data.size() == 0){ //waits for the cluster to put batches in its queue
                 Thread t = new Thread(() -> {
-                    while(!hasbatches){
+                    while(!cluster.hasDataBatches(this)){
                         try {
                             cluster.wait(); //when the cluster puts batches in the CPU queue it does notifyAll
                         } catch (InterruptedException e) {
-                            getDataBatches();
-                            startProcessing();
                         }
                     }
+                    getDataBatches();
+                    startProcessing();
                 });
                 t.start();
             }else{
@@ -119,5 +122,9 @@ public class CPU {
 
     public DataBatch getCurrDataBatch() {
         return currDataBatch;
+    }
+
+    public Cluster getCluster() {
+        return cluster;
     }
 }
