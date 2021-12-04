@@ -28,12 +28,23 @@ public class GPU {
     private int numOfProcessedBatchesFromGPU;
     private int timeUnitsUsed; //for the statistics in cluster
 
+    public GPU(Type t, Cluster c, Collection<DataBatch> d){
+        type=t;
+        cluster=c;
+        unprocessed=d;
+        model= null;
+    }
 
-    public void sendBatch(){
+    public GPU(Model m){
+        model=m;
+    }
+
+
+    public void sendBatchToCluster(){
 
     }
 
-    public void receiveBatch(){
+    public void receiveBatchFromCluster(){
 
     }
 
@@ -44,7 +55,10 @@ public class GPU {
     public void complete(Event e, Model m){
 
     }
-    public void UpdateResults(Model m, Student s){
+
+    //before= model.results==none
+    //after == good or bad
+    public void UpdateResults(Student s){
 
     }
 
@@ -55,6 +69,7 @@ public class GPU {
     public Model returnModel(){
         return model;
     }
+
     public boolean isDone(){
         return complete;
     }
