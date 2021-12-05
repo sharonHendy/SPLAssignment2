@@ -21,6 +21,7 @@ public class GPUTest {
         GPU.testModel();
         assertTrue(GPU.getModel().getResult() == Model.Result.Good ||
                 GPU.getModel().getResult() == Model.Result.Bad);
+        assertSame(GPU.getModel().getStatus(), Model.Status.Tested);
     }
 
     @Test
@@ -60,6 +61,7 @@ public class GPUTest {
         assertEquals(0, GPU.getCurrTick());
         assertEquals(2, GPU.getTicksUntilDone());
         assertNotNull(GPU.getCurrDBInTraining());
+        assertEquals(GPU.getModel().getStatus(), Model.Status.Training);
     }
 
     @Test
@@ -87,7 +89,8 @@ public class GPUTest {
 
     @Test
     public void complete() {
-
+        GPU.complete();
+        assertEquals(GPU.getModel().getStatus(), Model.Status.Trained);
     }
 
 }
