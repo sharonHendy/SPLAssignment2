@@ -16,7 +16,7 @@ public class MessageBusTest {
 
     @Before
     public void setUp(){
-        mb = new MessageBusImpl();
+        mb = MessageBusImpl.getInstance();
         ms = new StudentService("name");
         mb.register(ms);
     }
@@ -68,6 +68,7 @@ public class MessageBusTest {
     public void sendEvent(){
         int before = mb.numOfEventsSent();
         ExampleEvent e= new ExampleEvent("");
+        assertNull(mb.sendEvent(e)); //TODO check
         mb.subscribeEvent(e.getClass(),ms);
         mb.sendEvent(e);
         assertEquals(mb.numOfEventsSent(), before + 1);
@@ -75,6 +76,7 @@ public class MessageBusTest {
             assertEquals(mb.awaitMessage(ms),e);
         }
         catch (InterruptedException ignored){}
+
 
     }
 

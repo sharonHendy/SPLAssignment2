@@ -17,5 +17,12 @@ public class Student {
     private Degree status;
     private int publications;
     private int papersRead;
+    Student(String name, String department,Degree status){
+        this.name = name;
+        this.department = department;
+        this.status = status;
+        publications = 0;
+        papersRead = 0;
+    }
 
 }

@@ -21,61 +21,142 @@ public class GPU {
     private Cluster cluster;
     private Collection<DataBatch> unprocessed;
     private Collection<DataBatch> processed;
-    private boolean complete;
-    private int totalNumOfBatches;
-    private int currNumOfBatches;
-    private int numOfProcessedBatchesFromCPU;
-    private int numOfProcessedBatchesFromGPU;
-    public int timeUnitsUsed; //for the statistics in cluster
-    private int tick;
+    private int MaxNumOfProcessedBatches;
+    private boolean isTraining;
+    private int ticksUntilDone;
     private int currTick;
+    private Collection<DataBatch> unprocessedDBs;
+    private Collection<DataBatch> processedDBs;
+    int numOfTrainedDBs; //number of data batches trained so far
+    int numOfTotalDBs; //total number of data batches
+    int totalTimeUnitsUsed; //for statistics
 
 
-    public GPU(Type t, Cluster c, Collection<DataBatch> d,Model m){
-        type=t;
-        cluster=c;
-        unprocessed=d;
-        model= m;
+
+    GPU(Type type, Model model, Cluster cluster){
+        this.type = type;
+        this.model = model;
+        this.cluster = cluster;
+        switch (this.type){//TODO if
+            case RTX3090 -> { MaxNumOfProcessedBatches = 32;}
+            case RTX2080 -> { MaxNumOfProcessedBatches = 16;}
+            case GTX1080 -> { MaxNumOfProcessedBatches = 8;}
+        }
+        isTraining = false;
+        currTick = 0;
+        numOfProcessedDBs = 0;
     }
 
     public GPU(Model m){
         model=m;
     }
 
+    public int getCurrTick() {
+        return currTick;
+    }
 
-    public void sendBatchToCluster(){
+    /**
+     *the GPUService will call this method when it receives a tickBroadcast from the messageBus.
+     *@post: @currTick - @pre currTick == 1
+     */
+    void updateTick(){
+        currTick = currTick + 1;
+        doneTraining();
+    }
+    /**
+     * splits the data to dataBatches.
+     *
+     */
+    void prepareDataBatches(){
+        numOfUnprocessedDBs = model.getData().getSize();
+        while(numOfProcessedDBs != MaxNumOfProcessedBatches){
+
+        }
+    }
+
+    /**
+     * sends unprocessed data batches to the cluster.
+     * will only send if it has enough room to receive them.
+     */
+    void sendDataBatchesToCluster(){
 
     }
 
-    public void receiveBatchFromCluster(){
+    /**
+     * receives processed data batches from the cluster.
+     * waits for messages.
+     */
+    void receiveDataBatchFromCluster(){
 
     }
 
-    public void GPUprocessBatch(){
+    /**
+     * starts to train a processed data batch.
+     */
+    void startTraining(){
 
     }
 
-    public void complete(Event e){
+    /**
+     * checks if the ticksUntilDone is equal to the currTick, if so starts the training of another batch.
+     */
+    void doneTraining(){
 
     }
 
-    //before= model.results==none
-    //after == good or bad
-    public void UpdateResults(Student s){
+    /**
+     * notifies the GPUService that it finished training the model.
+     */
+    void complete(){
 
     }
 
-    public Type getType(){
-        return type;
-    }
-
-    public Model returnModel(){
+    public Model getModel() {
         return model;
     }
 
-    public boolean isDone(){
-        return complete;
+    public Type getType() {
+        return type;
     }
+
+    public Cluster getCluster() {
+        return cluster;
+    }
+
+    public int getMaxNumOfProcessedBatches() {
+        return MaxNumOfProcessedBatches;
+    }
+
+    public boolean isTraining() {
+        return isTraining;
+    }
+
+    public int getTicksUntilDone() {
+        return ticksUntilDone;
+    }
+
+    public Collection<DataBatch> getUnprocessedDBs() {
+        return unprocessedDBs;
+    }
+
+    public Collection<DataBatch> getProcessedDBs() {
+        return processedDBs;
+    }
+
+
+    public int getNumOfTrainedDBs() {
+        return numOfTrainedDBs;
+    }
+
+    public int getNumOfTotalDBs() {
+        return numOfTotalDBs;
+    }
+
+    public int getTotalTimeUnitsUsed() {
+        return totalTimeUnitsUsed;
+    }
+
+
 
 
 }

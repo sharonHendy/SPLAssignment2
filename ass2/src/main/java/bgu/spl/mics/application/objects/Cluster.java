@@ -27,4 +27,7 @@ public class Cluster {
 
 	}
 
+	public boolean hasDataBatches(CPU cpu) {
+		return true;
+	}
 }

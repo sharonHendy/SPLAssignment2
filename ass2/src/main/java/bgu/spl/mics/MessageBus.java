@@ -11,7 +11,6 @@ package bgu.spl.mics;
  */
 public interface MessageBus {
 
-
     /**
      * Subscribes {@code m} to receive {@link Event}s of type {@code type}.
      * <p>
@@ -54,8 +53,7 @@ public interface MessageBus {
      * micro-services subscribed to {@code b.getClass()}.
      * <p>
      * @param b 	The message to added to the queues.
-     * @pre:
-     * @post: numOfBroadcasts()= @pre:numOfBroadcasts()+1
+     * @post: numOfBroadcastsSent()= @pre:numOfBroadcastsSent()+1
      */
     void sendBroadcast(Broadcast b);
 
@@ -68,8 +66,8 @@ public interface MessageBus {
      * @param e     	The event to add to the queue.
      * @return {@link Future<T>} object to be resolved once the processing is complete,
      * 	       null in case no micro-service has subscribed to {@code e.getClass()}.
-     * @pre:
-     * @post: numOfEvents()= @pre:numOfEvents()+1
+     * @pre: isMicroServiceRegisteredEvent(e, m)==true
+     * @post: numOfEventsSent()= @pre:numOfEventsSent()+1
      */
     <T> Future<T> sendEvent(Event<T> e);
 
@@ -108,7 +106,7 @@ public interface MessageBus {
      * @return The next message in the {@code m}'s queue (blocking).
      * @throws InterruptedException if interrupted while waiting for a message
      *                              to became available.
-     * @pre:
+     * @pre: isMicroServiceRegistered(m)==true
      * @post:
      */
     Message awaitMessage(MicroService m) throws InterruptedException;

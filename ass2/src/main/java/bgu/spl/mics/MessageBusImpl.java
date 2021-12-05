@@ -21,6 +21,18 @@ public class MessageBusImpl implements MessageBus {
 	ArrayList<MicroService> testModelEventSubscribers;
 	ArrayList<MicroService> publishResultsEventSubscribers;
 
+	private static MessageBusImpl single_instance=null;
+
+	private MessageBusImpl(){
+
+	}
+	public static MessageBusImpl getInstance(){
+		if(single_instance==null){
+			single_instance= new MessageBusImpl();
+		}
+		return single_instance;
+	}
+
 	@Override
 	public <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m) {
 		// TODO Auto-generated method stub

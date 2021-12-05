@@ -25,7 +25,7 @@ public class FutureTest {
         //creates event, future for that event, messageBus and MicroService
         e = new ExampleEvent("test");
         future = mb.sendEvent(e);
-        mb = new MessageBusImpl();
+        mb = MessageBusImpl.getInstance();
         ms = new ExampleMicroService("name");
         mb.register(ms);
     }
@@ -62,6 +62,5 @@ public class FutureTest {
         assertTrue(beforeTime.until(afterTime, ChronoUnit.MILLIS) < 100); //checks that the get took <timeout> seconds
         future.resolve("result");
         assertEquals(future.get(timeout,timeUnit),"result");
-        //assertTrue(future.isDone()); tests the resolve
     }
 }

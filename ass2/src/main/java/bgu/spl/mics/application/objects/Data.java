@@ -21,4 +21,7 @@ public class Data {
     public Type getType() {
         return type;
     }
+    public int getSize(){
+        return size;
+    }
 }

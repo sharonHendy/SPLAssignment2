@@ -27,7 +27,7 @@ public class Future<T> {
      * not been completed.
      * <p>
      * @return return the result of type T if it is available, if not wait until it is available.
-	 *
+	 * @post: T= this.result
      */
 	public T get() {
 		//TODO: implement this.
@@ -61,6 +61,7 @@ public class Future<T> {
      * @return return the result of type T if it is available, if not, 
      * 	       wait for {@code timeout} TimeUnits {@code unit}. If time has
      *         elapsed, return null.
+	 * @post: T== this.result or T==null
      */
 	public T get(long timeout, TimeUnit unit) {
 		//TODO: implement this.

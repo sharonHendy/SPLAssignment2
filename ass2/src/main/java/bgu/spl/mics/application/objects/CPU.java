@@ -15,12 +15,14 @@ public class CPU {
     private int currTick;
     private DataBatch currDataBatch;
     private int ticksUntilDone;
+    private boolean isProcessing; //true if the CPU is currently processing a batch or just created
 
     CPU(int cores, Cluster cluster){
         this.cores = cores;
         data = new ArrayList<>();
         this.cluster = cluster;
         currTick = 0;
+        isProcessing = true;
     }
     /**
      *the CPUService will call this method when it receives e tickBroadcast from the messageBus.
@@ -33,7 +35,7 @@ public class CPU {
 
     /**
      * gets dataBatches from the cluster.
-     * @post: data.size() > 0
+     * @post: data.size() > @pre: data.size()
      */
     void getDataBatches(){
 
@@ -54,6 +56,8 @@ public class CPU {
 
     /**
      * send the processed data batch to the cluster.
+     * @pre: data.size()>0
+     * @post: data.size < @pre: data.size()-1
      */
     void sendDataBatch(){
         cluster.receiveDataBatchFromCPU(currDataBatch);
@@ -64,20 +68,20 @@ public class CPU {
      * if so starts the processing of another batch.
      */
     void doneProcessing(){
-        if(currTick >= ticksUntilDone){
+        if(isProcessing & currTick >= ticksUntilDone){
+            isProcessing = false; //ignores ticks until it started processing a new batch
             sendDataBatch();
             ((ArrayList<DataBatch>)data).remove(0);
-
             if(data.size() == 0){ //waits for the cluster to put batches in its queue
                 Thread t = new Thread(() -> {
-                    while(!hasbatches){
+                    while(!cluster.hasDataBatches(this)){
                         try {
                             cluster.wait(); //when the cluster puts batches in the CPU queue it does notifyAll
                         } catch (InterruptedException e) {
-                            getDataBatches();
-                            startProcessing();
                         }
                     }
+                    getDataBatches();
+                    startProcessing();
                 });
                 t.start();
             }else{

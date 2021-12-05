@@ -22,8 +22,9 @@ public class CPUTest {
     }
     @Test
     public void getDataBatches() {
+        int before= CPU.getData().size();
         CPU.getDataBatches();
-        assertTrue(CPU.getData().size() != 0);
+        assertTrue(CPU.getData().size() > before);
     }
 
     @Test
@@ -31,18 +32,6 @@ public class CPUTest {
         CPU.startProcessing();
         assertNotNull(CPU.getCurrDataBatch());
 
-        switch (CPU.getCurrDataBatch().getDataType()){
-            case Images -> {
-                assertEquals(CPU.getTicksUntilDone(),(32/CPU.getCores()) * 4);
-            }
-            case Text -> {
-                assertEquals(CPU.getTicksUntilDone(),(32/CPU.getCores()) * 2);
-            }
-            case Tabular -> {
-                assertEquals(CPU.getTicksUntilDone(),32/CPU.getCores());
-            }
-            default -> assertEquals(CPU.getTicksUntilDone(),32/CPU.getCores());
-        }
     }
 
     @Test
