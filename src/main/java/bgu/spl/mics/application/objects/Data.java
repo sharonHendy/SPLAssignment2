@@ -6,6 +6,8 @@ package bgu.spl.mics.application.objects;
  */
 public class Data {
 
+
+
     /**
      * Enum representing the Data type.
      */
@@ -29,5 +31,13 @@ public class Data {
 
     public int getSize() {
         return size;
+    }
+
+    public void setProcessed(int processed) {
+        this.processed = processed;
+    }
+
+    public int getProcessed() {
+        return processed;
     }
 }

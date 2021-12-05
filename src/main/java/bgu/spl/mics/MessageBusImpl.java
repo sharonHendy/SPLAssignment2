@@ -18,6 +18,17 @@ public class MessageBusImpl implements MessageBus {
 	ArrayList<MicroService> testModelEventSubscribers;
 	ArrayList<MicroService> publishResultsEventSubscribers;
 
+	private static MessageBusImpl single_instance=null;
+
+	private MessageBusImpl(){}
+
+	public static MessageBusImpl getInstance(){
+		if (single_instance == null){
+			single_instance = new MessageBusImpl();
+		}
+		return single_instance;
+	}
+
 
 	@Override
 	public <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m) {
@@ -91,16 +102,6 @@ public class MessageBusImpl implements MessageBus {
 	@Override
 	public int numOfEventsSent() {
 		return 0;
-	}
-
-	@Override
-	public <T> boolean isMicroServiceRegisteredEvent(MicroService m, Class<? extends Event<T>> type) {
-		return false;
-	}
-
-	@Override
-	public boolean isMicroServiceRegisteredBroadcast(MicroService m, Class<? extends Broadcast> type) {
-		return false;
 	}
 
 

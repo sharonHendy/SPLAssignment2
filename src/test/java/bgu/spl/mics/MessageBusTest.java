@@ -19,7 +19,7 @@ public class MessageBusTest {
 
     @Before
     public void setUp() throws Exception {
-        mb = new MessageBusImpl();
+        mb = MessageBusImpl.getInstance();
         ms = new ExampleMicroService("name");
         mb.register(ms);
     }
@@ -60,18 +60,29 @@ public class MessageBusTest {
     @Test
     public void sendBroadcast() {
         int before = mb.numOfBroadcastsSent();
-        mb.sendBroadcast(new ExampleBroadcast(""));
-        Assert.assertTrue(mb.numOfBroadcastsSent() == before + 1);
-        //TODO !!!!!!!!!!
+        ExampleBroadcast b= new ExampleBroadcast("");
+        mb.subscribeBroadcast(b.getClass(),ms);
+        mb.sendBroadcast(b);
+        assertEquals(mb.numOfBroadcastsSent(), before + 1);
+        try{
+            assertEquals(mb.awaitMessage(ms),b);
+        }
+        catch (InterruptedException ignored){}
     }
 
 
     @Test
     public void sendEvent() {
         int before = mb.numOfEventsSent();
-        mb.sendEvent(new ExampleEvent(""));
-        Assert.assertEquals(mb.numOfEventsSent(), before + 1);
-        //TODO !!!!!!!!!!!!!!!!!
+        ExampleEvent e= new ExampleEvent("");
+        assertNull(mb.sendEvent(e));
+        mb.subscribeEvent(e.getClass(),ms);
+        mb.sendEvent(e);
+        assertEquals(mb.numOfEventsSent(), before + 1);
+        try{
+            assertEquals(mb.awaitMessage(ms),e);
+        }
+        catch (InterruptedException ignored){}
     }
 
     @Test

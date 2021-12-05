@@ -29,7 +29,7 @@ public class CPU {
 
     /**
      *the CPUService will call this method when it receives a tickBroadcast from the messageBus.
-     *@post: @currTick - @pre currTick == 1
+     *@post: @currTick - @pre:currTick == 1
      */
     void updateTick(){
         currTick = currTick + 1;
@@ -38,7 +38,7 @@ public class CPU {
 
     /**
      * gets dataBatches from the cluster.
-     * @post: data.size() > 0
+     * @post: data.size() > @pre:data.size()
      */
     void getDataBatches(){
 
@@ -52,17 +52,14 @@ public class CPU {
     void startProcessing(){
         currDataBatch = ((ArrayList<DataBatch>)data).get(0);
 
-        switch (currDataBatch.getDataType()){ //TODO if
-            case Images -> {
-                ticksUntilDone = (32/cores) * 4;
-            }
-            case Text -> {
-                ticksUntilDone = (32/cores)*2;
-            }
-            case Tabular -> {
-                ticksUntilDone = (32/cores);
-            }
-            default -> ticksUntilDone = (32/cores) * 4;
+        Data.Type type = currDataBatch.getDataType();
+
+        if(type == Data.Type.Images){
+            ticksUntilDone = (32/cores) * 4;
+        }else if(type == Data.Type.Text){
+            ticksUntilDone = (32/cores)*2;
+        }else if(type == Data.Type.Tabular){
+            ticksUntilDone = (32/cores);
         }
 
         currTick = 0;
@@ -71,6 +68,8 @@ public class CPU {
 
     /**
      * send the processed data batch to the cluster.
+     * @pre: data.size > 0
+     * @post: data.size == @pre: data.size - 1
      */
     void sendDataBatch(){
         cluster.receiveDataBatchFromCPU(currDataBatch);
@@ -79,6 +78,8 @@ public class CPU {
     /**
      * checks if the number of ticks it takes to process the data batch have passed,
      * if so starts the processing of another batch.
+     * @post: if(ticksUntilDone == currTick) {data.size() == @pre:data.size() -1;}
+     *
      */
     void doneProcessing(){
         if(isProcessing & currTick >= ticksUntilDone){
@@ -126,5 +127,9 @@ public class CPU {
 
     public Cluster getCluster() {
         return cluster;
+    }
+
+    public void setCurrTick(int currTick) {
+        this.currTick = currTick;
     }
 }

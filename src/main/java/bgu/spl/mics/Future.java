@@ -1,7 +1,7 @@
 package bgu.spl.mics;
 
 import java.util.concurrent.TimeUnit;
-//TODO Pre Post !!!!!!!!!!!
+
 /**
  * A Future object represents a promised result - an object that will
  * eventually be resolved to hold a result of some operation. The class allows
@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 public class Future<T> {
 	
 	/**
-	 * This should be the the only public constructor in this class.
+	 * This should be the only public constructor in this class.
 	 */
 	public Future() {
 		//TODO: implement this
@@ -25,7 +25,8 @@ public class Future<T> {
      * not been completed.
      * <p>
      * @return return the result of type T if it is available, if not wait until it is available.
-     *
+     * @post: this.isDone() == true
+	 * @post: @return == result
      */
 	public T get() {
 		//TODO: implement this.
@@ -34,7 +35,9 @@ public class Future<T> {
 	
 	/**
      * Resolves the result of this Future object.
+	 * @pre: this.isDone() == false
 	 * @post: this.isDone() == true
+	 * @post: future.get() == result
      */
 	public void resolve (T result) {
 		//TODO: implement this.
@@ -59,7 +62,9 @@ public class Future<T> {
      * 	       wait for {@code timeout} TimeUnits {@code unit}. If time has
      *         elapsed, return null.
 	 *
+	 * @pre: timeout>=0
 	 * @post: this.isDone() == true
+	 * @post: @return:T == result || @return:T == null
      */
 	public T get(long timeout, TimeUnit unit) {
 		//TODO: implement this.

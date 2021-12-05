@@ -19,7 +19,7 @@ public class FutureTest extends TestCase {
         //creates event, future for that event, messageBus and MicroService
         e = new ExampleEvent("test");
         future = mb.sendEvent(e);
-        mb = new MessageBusImpl();
+        mb = MessageBusImpl.getInstance();
         ms = new ExampleMicroService("name");
         mb.register(ms);
     }
@@ -33,7 +33,7 @@ public class FutureTest extends TestCase {
         t.start();
         String result = future.get();
 
-        assertTrue("result".equals(result) && flag.get());
+        assertTrue("result".equals(result) && flag.get()); //checks that the result was placed only when future has been resolved
     }
 
     public void testResolve() {

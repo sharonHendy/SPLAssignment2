@@ -3,6 +3,7 @@ package bgu.spl.mics.application.objects;
 import org.junit.Before;
 import org.junit.Test;
 
+import static bgu.spl.mics.application.objects.GPU.Type.RTX2080;
 import static bgu.spl.mics.application.objects.GPU.Type.RTX3090;
 import static org.junit.Assert.*;
 
@@ -10,10 +11,16 @@ public class GPUTest {
     GPU GPU;
     @Before
     public void setUp(){
-        GPU = new GPU(RTX3090, new Model("noam",new Data(Data.Type.Images,3000),
+        GPU = new GPU(RTX2080, new Model("noam",new Data(Data.Type.Images,3000),
                 new Student("sharon","cs", Student.Degree.PhD) ),new Cluster());
 
+    }
 
+    @Test
+    public void testModel(){
+        GPU.testModel();
+        assertTrue(GPU.getModel().getResult() == Model.Result.Good ||
+                GPU.getModel().getResult() == Model.Result.Bad);
     }
 
     @Test
@@ -24,7 +31,7 @@ public class GPUTest {
     }
 
     @Test
-    public void prepareDataBatches() {
+    public void prepareDataBatches() { //called from constructor
         int size = GPU.getModel().getData().getSize();
         assertEquals(GPU.getNumOfTotalDBs() ,size/1000);
         assertEquals(GPU.getUnprocessedDBs().size(),size/1000);
@@ -32,19 +39,50 @@ public class GPUTest {
 
     @Test
     public void sendDataBatchesToCluster(){
-        GPU.
+        int before = GPU.getUnprocessedDBs().size();
+        GPU.sendDataBatchesToCluster();
+        assertEquals(GPU.getUnprocessedDBs().size(), before - 1);
     }
 
     @Test
     public void receiveDataBatchFromCluster() {
+        assertTrue(GPU.getProcessedDBs().size() < GPU.getMaxNumOfProcessedBatches());
+        int before = GPU.getProcessedDBs().size();
+        GPU.receiveDataBatchFromCluster();
+        assertEquals(GPU.getProcessedDBs().size(), before + 1);
+        assertTrue(GPU.getProcessedDBs().size() <= GPU.getMaxNumOfProcessedBatches());
     }
 
     @Test
     public void startTraining() {
+        GPU.startTraining();
+        assertTrue(GPU.isTraining());
+        assertEquals(0, GPU.getCurrTick());
+        assertEquals(2, GPU.getTicksUntilDone());
+        assertNotNull(GPU.getCurrDBInTraining());
     }
 
     @Test
     public void doneTraining() {
+        DataBatch dataBatch = GPU.getUnprocessedDBs().iterator().next();
+        GPU.getProcessedDBs().add(dataBatch);
+        int sizeBefore = GPU.getProcessedDBs().size();
+        int numOfProcessedInModelBefore = GPU.getModel().getData().getProcessed();
+        GPU.setCurrDBInTraining(dataBatch);
+        DataBatch curr = GPU.getCurrDBInTraining();
+        GPU.startTraining();
+
+        //checks that the GPU doesn't move to another batch until <TicksUntilDone> ticks have passed
+        while ( GPU.getCurrTick() < GPU.getTicksUntilDone()){
+            GPU.doneTraining();
+            assertSame(curr, GPU.getCurrDBInTraining());
+            GPU.setCurrTick(GPU.getCurrTick() +1);
+        }
+        GPU.doneTraining(); //here CurrTick == TicksUntilDone
+        assertNotSame(curr, GPU.getCurrDBInTraining());
+        assertEquals(GPU.getProcessedDBs().size(), sizeBefore - 1);
+        assertEquals(GPU.getModel().getData().getProcessed(), numOfProcessedInModelBefore + 1);
+
     }
 
     @Test

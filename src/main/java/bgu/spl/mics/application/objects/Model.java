@@ -8,6 +8,8 @@ package bgu.spl.mics.application.objects;
 public class Model {
 
 
+
+
     enum Status {PreTrained, Training, Trained, Tested}
     enum Result {None, Good, Bad}
 
@@ -29,4 +31,7 @@ public class Model {
         return data;
     }
 
+    public Result getResult() {
+        return result;
+    }
 }
