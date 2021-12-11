@@ -1,9 +1,12 @@
 package bgu.spl.mics;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Queue;
+import bgu.spl.mics.application.messages.TestModelEvent;
+import bgu.spl.mics.application.messages.TrainModelEvent;
+
+import java.util.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * The {@link MessageBusImpl class is the implementation of the MessageBus interface.
@@ -12,70 +15,158 @@ import java.util.Queue;
  */
 public class MessageBusImpl implements MessageBus {
 
-	//private ArrayList<Queue<Event>> queues;
-	private HashMap<MicroService,Queue> MSqueues;
-	ArrayList<MicroService> trainModelEventSubscribers;
-	ArrayList<MicroService> testModelEventSubscribers;
-	ArrayList<MicroService> publishResultsEventSubscribers;
+	private ConcurrentHashMap<Event<?>, Future<?>> futureHashMap;
+	private ConcurrentHashMap<MicroService,LinkedBlockingQueue<Message>> MSqueues;
+	private ConcurrentHashMap<Class<? extends Event<?>>, LinkedBlockingQueue<MicroService>> EventsSubscribers;
+	private ConcurrentHashMap<Class<? extends Broadcast>, LinkedBlockingQueue<MicroService>> BroadcastSubscribers;
+	private int numOfEventsSent;
+	private int numOfBroadcastsSent;
+
+	private static class SingletonHolder{
+		private static MessageBusImpl instance= new MessageBusImpl();
+	}
+
+	//private static MessageBusImpl single_instance=null;
+
+	private MessageBusImpl(){
+		numOfEventsSent=0;
+		numOfBroadcastsSent=0;
+		EventsSubscribers= new ConcurrentHashMap<>();
+		BroadcastSubscribers= new ConcurrentHashMap<>();
+		futureHashMap= new ConcurrentHashMap<>();
+		MSqueues= new ConcurrentHashMap<>();
+	}
+
+	public static MessageBusImpl getInstance(){
+		return SingletonHolder.instance;
+	}
 
 
 	@Override
 	public <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m) {
-		// TODO Auto-generated method stub
-
+		/*
+		if(!EventsSubscribers.containsKey(type)){
+			EventsSubscribers.put(type, new LinkedBlockingQueue<MicroService>());
+		}*/
+		if(isMicroServiceRegistered(m)) {
+			EventsSubscribers.putIfAbsent(type, new LinkedBlockingQueue<MicroService>());
+			if (!isMicroServiceSubscribedEvent(m, type)) {
+				EventsSubscribers.get(type).add(m);
+			}
+		}
 	}
 
 	@Override
 	public void subscribeBroadcast(Class<? extends Broadcast> type, MicroService m) {
-		// TODO Auto-generated method stub
-
+		/*if(!BroadcastSubscribers.containsKey(type)){
+			BroadcastSubscribers.put(type, new LinkedBlockingQueue<MicroService>());
+		}*/
+		if(isMicroServiceRegistered(m)) {
+			BroadcastSubscribers.putIfAbsent(type, new LinkedBlockingQueue<MicroService>());
+			if (!isMicroServiceSubscribedBroadcast(m, type)) {
+				BroadcastSubscribers.get(type).add(m);
+			}
+		}
 	}
 
 	@Override
 	public <T> void complete(Event<T> e, T result) {
-		// TODO Auto-generated method stub
-
+		Future<T> future=(Future<T>) futureHashMap.get(e);
+		future.resolve(result);
 	}
 
 	@Override
 	public void sendBroadcast(Broadcast b) {
-		// TODO Auto-generated method stub
+		LinkedBlockingQueue<MicroService> ms= BroadcastSubscribers.get(b.getClass());
+		for (MicroService m : ms) {
+			MSqueues.get(m).add(b);
+		}
+		numOfBroadcastsSent++;
+		//notifyAll();
 
 	}
 
-	
+
 	@Override
-	public <T> Future<T> sendEvent(Event<T> e) {
-		// TODO Auto-generated method stub
-		return null;
+	public <T> Future<T> sendEvent(Event<T> e){
+		MicroService ms = EventsSubscribers.get(e.getClass()).poll();
+		if(ms==null){
+			return null;
+		}
+		//removes and add to the back of the queue
+		try{
+			EventsSubscribers.get(e.getClass()).put(ms);
+		}
+		catch (InterruptedException a){
+			//do something
+		}
+		MSqueues.get(ms).add(e);
+		Future<T> future= new Future<T>();
+		futureHashMap.put(e, future);
+		numOfEventsSent++;
+		//notifyAll();
+		return future; //TODO return a future
+
+
 	}
 
 	@Override
 	public void register(MicroService m) {
-		MSqueues.put(m, new LinkedList<Event>());
-
+		MSqueues.put(m, new LinkedBlockingQueue<>());
 	}
 
 	@Override
 	public void unregister(MicroService m) {
 		MSqueues.remove(m);
+		// what about the queue m have with messages, the events and broadcast he is subscribed to?
+
+		//EventsSubscribers.forEachKey(); //remove(m)
 
 	}
 
 	@Override
 	public Message awaitMessage(MicroService m) throws InterruptedException {
-		// TODO Auto-generated method stub
-		return null;
+		if(!isMicroServiceRegistered(m)){
+			throw new IllegalStateException();
+		}
+
+		/*while(MSqueues.get(m)==null){
+			wait();
+		}
+		return MSqueues.get(m).poll();
+		*/
+		return MSqueues.get(m).take(); //take- waiting if necessary until an element becomes available and throw interrupted exception
 	}
 
 	@Override
-	public <T> boolean isMicroServiceRegisteredEvent(MicroService m, Class<? extends Event<T>> type) {
+	public <T> boolean isMicroServiceSubscribedEvent(MicroService m, Class<? extends Event<T>> type) {
+		if(EventsSubscribers.containsKey(type)){
+			return EventsSubscribers.get(type).contains(m);
+		}
 		return false;
 	}
 
 	@Override
-	public boolean isMicroServiceRegisteredBroadcast(MicroService m, Class<? extends Broadcast> type) {
+	public boolean isMicroServiceSubscribedBroadcast(MicroService m, Class<? extends Broadcast> type) {
+		if(BroadcastSubscribers.containsKey(type)){
+			return BroadcastSubscribers.get(type).contains(m);
+		}
 		return false;
+	}
+
+	@Override
+	public boolean isMicroServiceRegistered(MicroService m) {
+		return MSqueues.containsKey(m);
+	}
+
+	@Override
+	public int numOfBroadcastsSent() {
+		return numOfBroadcastsSent;
+	}
+
+	@Override
+	public int numOfEventsSent() {
+		return numOfEventsSent;
 	}
 
 

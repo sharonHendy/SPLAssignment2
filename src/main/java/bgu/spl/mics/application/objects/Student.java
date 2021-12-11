@@ -12,10 +12,39 @@ public class Student {
         MSc, PhD
     }
 
-    private int name;
+    private String name;
     private String department;
     private Degree status;
+
+    public String getName() {
+        return name;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public Degree getStatus() {
+        return status;
+    }
+
+    public int getPublications() {
+        return publications;
+    }
+
+    public int getPapersRead() {
+        return papersRead;
+    }
+
     private int publications;
     private int papersRead;
+
+    Student(String name, String department, Degree status){
+        this.name = name;
+        this.department = department;
+        this.status = status;
+        publications = 0;
+        papersRead = 0;
+    }
 
 }

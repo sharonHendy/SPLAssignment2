@@ -22,7 +22,7 @@ public abstract class MicroService implements Runnable {
 
     private boolean terminated = false;
     private final String name;
-
+    private MessageBus messageBus= MessageBusImpl.getInstance();
 
     /**
      * @param name the micro-service name (used mainly for debugging purposes -
@@ -55,6 +55,9 @@ public abstract class MicroService implements Runnable {
      */
     protected final <T, E extends Event<T>> void subscribeEvent(Class<E> type, Callback<E> callback) {
         //TODO: implement this.
+        messageBus.subscribeEvent(type, this);
+
+
     }
 
     /**
@@ -79,11 +82,12 @@ public abstract class MicroService implements Runnable {
      */
     protected final <B extends Broadcast> void subscribeBroadcast(Class<B> type, Callback<B> callback) {
         //TODO: implement this.
+        messageBus.subscribeBroadcast(type,this);
     }
 
     /**
      * Sends the event {@code e} using the message-bus and receive a {@link Future<T>}
-     * object that may be resolved to hold a result. This method must be Non-Blocking since
+     * object that may be resolved to hold a result. This method must be Non-Blocking since //TODO
      * there may be events which do not require any response and resolving.
      * <p>
      * @param <T>       The type of the expected result of the request
@@ -95,7 +99,7 @@ public abstract class MicroService implements Runnable {
      */
     protected final <T> Future<T> sendEvent(Event<T> e) {
         //TODO: implement this.
-        return null; //TODO: delete this line :)
+        return messageBus.sendEvent(e);
     }
 
     /**
@@ -105,7 +109,7 @@ public abstract class MicroService implements Runnable {
      * @param b The broadcast message to send
      */
     protected final void sendBroadcast(Broadcast b) {
-        //TODO: implement this.
+        messageBus.sendBroadcast(b);
     }
 
     /**
@@ -120,6 +124,7 @@ public abstract class MicroService implements Runnable {
      */
     protected final <T> void complete(Event<T> e, T result) {
         //TODO: implement this.
+        messageBus.complete(e,result);
     }
 
     /**

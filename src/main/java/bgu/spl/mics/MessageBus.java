@@ -17,7 +17,8 @@ public interface MessageBus {
      * @param <T>  The type of the result expected by the completed event.
      * @param type The type to subscribe to,
      * @param m    The subscribing micro-service.
-     * @post: isMicroServiceRegisteredEvent(m, type) == true
+     * @pre: isMicroServiceRegisteredEvent(type, m)==false
+     * @post: isMicroServiceRegisteredEvent(type, m)==true
      */
     <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m);
 
@@ -26,7 +27,8 @@ public interface MessageBus {
      * <p>
      * @param type 	The type to subscribe to.
      * @param m    	The subscribing micro-service.
-     * @post: isMicroServiceRegisteredBroadcast(m, type) == true
+     * @pre: isMicroServiceRegisteredBroadcast(type, m)==false
+     * @post: isMicroServiceRegisteredBroadcast(type, m)==true
      */
     void subscribeBroadcast(Class<? extends Broadcast> type, MicroService m);
 
@@ -39,6 +41,10 @@ public interface MessageBus {
      * @param <T>    The type of the result expected by the completed event.
      * @param e      The completed event.
      * @param result The resolved result of the completed event.
+     * @pre: sendEvent(e).get()==null
+     * @pre: sendEvent(e).isDone()==false
+     * @post: sendEvent(e).get()==result
+     * @post: sendEvent(e).isDone()==true
      */
     <T> void complete(Event<T> e, T result);
 
@@ -47,6 +53,7 @@ public interface MessageBus {
      * micro-services subscribed to {@code b.getClass()}.
      * <p>
      * @param b 	The message to added to the queues.
+     * @post: numOfBroadcastsSent()= @pre:numOfBroadcastsSent()+1
      */
     void sendBroadcast(Broadcast b);
 
@@ -59,6 +66,8 @@ public interface MessageBus {
      * @param e     	The event to add to the queue.
      * @return {@link Future<T>} object to be resolved once the processing is complete,
      * 	       null in case no micro-service has subscribed to {@code e.getClass()}.
+     * @pre: isMicroServiceRegisteredEvent(e, m)==true
+     * @post: numOfEventsSent()= @pre:numOfEventsSent()+1
      */
     <T> Future<T> sendEvent(Event<T> e);
 
@@ -66,6 +75,8 @@ public interface MessageBus {
      * Allocates a message-queue for the {@link MicroService} {@code m}.
      * <p>
      * @param m the micro-service to create a queue for.
+     * @pre: isMicroServiceRegistered(m)==false
+     * @post: isMicroServiceRegistered(m)==true
      */
     void register(MicroService m);
 
@@ -76,6 +87,8 @@ public interface MessageBus {
      * registered, nothing should happen.
      * <p>
      * @param m the micro-service to unregister.
+     * @pre: isMicroServiceRegistered(m)==true
+     * @post: isMicroServiceRegistered(m)==false
      */
     void unregister(MicroService m);
 
@@ -93,14 +106,17 @@ public interface MessageBus {
      * @return The next message in the {@code m}'s queue (blocking).
      * @throws InterruptedException if interrupted while waiting for a message
      *                              to became available.
+     * @pre: isMicroServiceRegistered(m)==true
      */
     Message awaitMessage(MicroService m) throws InterruptedException;
 
     <T> boolean isMicroServiceSubscribedEvent(MicroService m, Class<? extends Event<T>> type);
+
     boolean isMicroServiceSubscribedBroadcast(MicroService m, Class<? extends Broadcast> type);
 
     boolean isMicroServiceRegistered(MicroService m);
-    int numOfBroadcasts();
-    int numOfEvents();
-    
+
+    int numOfBroadcastsSent();
+
+    int numOfEventsSent();
 }
