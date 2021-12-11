@@ -23,7 +23,6 @@ public class Future<T> {
 	public Future() {
 		isResolved= false;
 		result=null;
-		//TODO: implement this
 	}
 
 	/**
@@ -82,8 +81,10 @@ public class Future<T> {
 	 * @post: @return:T == result || @return:T == null
 	 */
 	public T get(long timeout, TimeUnit unit) {
-		//TODO: implement this.
-		return null;
+		while(!isResolved){
+			this.wait(timeout, unit);
+		}
+		return result;
 	}
 
 }

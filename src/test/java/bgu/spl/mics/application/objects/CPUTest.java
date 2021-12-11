@@ -9,7 +9,7 @@ public class CPUTest extends TestCase {
     CPU CPU;
     @Before
     public void setUp(){
-        CPU = new CPU(4,new Cluster());
+        CPU = new CPU(4, Cluster.getInstance());
         CPU.getData().add(new DataBatch(new Data(Data.Type.Images, 2000),0));
     }
     @Test
@@ -19,7 +19,7 @@ public class CPUTest extends TestCase {
         assertEquals(currTick, currTick + 1);
     }
     @Test
-    public void GetDataBatches() {
+    public void GetDataBatches(DataBatch dataBatch) {
         int before = CPU.getData().size();
         CPU.getDataBatches();
         assertTrue(CPU.getData().size() > before);

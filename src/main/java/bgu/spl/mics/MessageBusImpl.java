@@ -1,10 +1,6 @@
 package bgu.spl.mics;
 
-import bgu.spl.mics.application.messages.TestModelEvent;
-import bgu.spl.mics.application.messages.TrainModelEvent;
-
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -118,9 +114,15 @@ public class MessageBusImpl implements MessageBus {
 	@Override
 	public void unregister(MicroService m) {
 		MSqueues.remove(m);
-		// what about the queue m have with messages, the events and broadcast he is subscribed to?
+		for(LinkedBlockingQueue<MicroService> ms: EventsSubscribers.values()){
+			ms.remove(m);
+		}
+		for(LinkedBlockingQueue<MicroService> ms: BroadcastSubscribers.values()){
+			ms.remove(m);
+		}
 
-		//EventsSubscribers.forEachKey(); //remove(m)
+		// what about the queue m have with the messages
+
 
 	}
 

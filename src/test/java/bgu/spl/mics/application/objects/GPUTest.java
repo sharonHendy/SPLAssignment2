@@ -69,6 +69,7 @@ public class GPUTest {
         DataBatch dataBatch = GPU.getUnprocessedDBs().iterator().next();
         GPU.getProcessedDBs().add(dataBatch);
         int sizeBefore = GPU.getProcessedDBs().size();
+        int numBefore= GPU.numOfTrainedDBs;
         int numOfProcessedInModelBefore = GPU.getModel().getData().getProcessed();
         GPU.setCurrDBInTraining(dataBatch);
         DataBatch curr = GPU.getCurrDBInTraining();
@@ -82,8 +83,9 @@ public class GPUTest {
         }
         GPU.doneTraining(); //here CurrTick == TicksUntilDone
         assertNotSame(curr, GPU.getCurrDBInTraining());
-        assertEquals(GPU.getProcessedDBs().size(), sizeBefore - 1);
-        assertEquals(GPU.getModel().getData().getProcessed(), numOfProcessedInModelBefore + 1);
+        //assertEquals(GPU.getProcessedDBs().size(), sizeBefore - 1);
+        assertEquals(GPU.getNumOfTrainedDBs(),numBefore + 1);
+        assertEquals(GPU.getModel().getData().getProcessed(), numOfProcessedInModelBefore + 1000);
 
     }
 
