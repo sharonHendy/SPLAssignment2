@@ -1,13 +1,10 @@
 package bgu.spl.mics.application.objects;
 
 
-import bgu.spl.mics.MessageBusImpl;
-import bgu.spl.mics.MicroService;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -20,17 +17,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class Cluster {
 	private Collection<GPU> GPUS;
 	private Collection<CPU> CPUS;
-	private HashMap<DataBatch, GPU> findGPU;
-	private HashMap<GPU, LinkedBlockingQueue<DataBatch>> unprocessed;
-	private HashMap<GPU, LinkedBlockingQueue<DataBatch>> processed;
+	private ConcurrentHashMap<DataBatch, GPU> findGPU;
+	private LinkedBlockingQueue<DataBatch> unprocessed;
+	private ConcurrentHashMap<GPU, LinkedBlockingQueue<DataBatch>> processed;
 	//statistics:
 	private ArrayList<String> ModelsNames;
 	private int numOfProcessedByCPU;
 	private int CPUTimeUnitsUsed;
 	private int GPUTimeUnitsUsed;
-
-	public boolean hasDataBatches(CPU cpu) {
-	}
 
 
 	private static class SingletonHolder{
@@ -49,33 +43,37 @@ public class Cluster {
 		CPUTimeUnitsUsed=0;
 		GPUTimeUnitsUsed=0;
 		ModelsNames= new ArrayList<>();
+		findGPU= new ConcurrentHashMap<>();
+		processed= new ConcurrentHashMap<>();
+		unprocessed= new LinkedBlockingQueue<>();
+
+	}
+	public void addCPUSandGPUS(Collection<GPU> GPUS, Collection<CPU> CPUS){
+		this.CPUS= CPUS;
+		this.GPUS= GPUS;
+		for(GPU gpu: GPUS){
+			processed.put(gpu, new LinkedBlockingQueue<>());
+		}
 	}
 
 	public void receiveDataBatchFromGPU(DataBatch dataBatch, GPU gpu){
-		if(unprocessed.putIfAbsent(gpu, new LinkedBlockingQueue<DataBatch>())==null){
-			String name= gpu.getModel().getName();
-			ModelsNames.add(name);
-		}
-		unprocessed.get(gpu).add(dataBatch);
+		unprocessed.add(dataBatch);
 		findGPU.put(dataBatch, gpu);
 	}
 
-	public void sendDataBatchToGPU(GPU gpu){
-		if(!processed.get(gpu).isEmpty()) {
-			DataBatch send= processed.get(gpu).poll();
-			gpu.receiveDataBatchFromCluster(send);
-			findGPU.remove(send);
-		}
+	public DataBatch sendDataBatchToGPU(GPU gpu){
+		return processed.get(gpu).poll();
 	}
 
 	public void receiveDataBatchFromCPU(DataBatch dataBatch){
-		GPU g= findGPU.get(dataBatch);
-		processed.get(g).add(dataBatch);
-		numOfProcessedByCPU++;
+		GPU gpu= findGPU.get(dataBatch);
+		processed.get(gpu).add(dataBatch);
+		synchronized (this){
+			numOfProcessedByCPU++;
+		}
 	}
-	public Void sendDataBatchToCPU(){
-
-
+	public DataBatch sendDataBatchToCPU(){
+		return unprocessed.poll();
 	}
 
 	public ArrayList<String> getModelsNames() {
@@ -94,14 +92,15 @@ public class Cluster {
 		return GPUTimeUnitsUsed;
 	}
 
-	public void setCPUTimeUnitsUsed() {
-		for( CPU c: CPUS){
-			CPUTimeUnitsUsed= CPUTimeUnitsUsed+ c.getTotalTimeUnitsUsed();
-		}
+	public synchronized void setCPUTimeUnitsUsed() {
+		CPUTimeUnitsUsed++;
 	}
 
-	public void setGPUTimeUnitsUsed() {
-		for( GPU g: GPUS)
-		GPUTimeUnitsUsed = GPUTimeUnitsUsed+ g.getTotalTimeUnitsUsed();
+	public synchronized void setGPUTimeUnitsUsed() {
+		GPUTimeUnitsUsed++;
+	}
+
+	public synchronized void setModelsNames(String name){
+		ModelsNames.add(name);
 	}
 }

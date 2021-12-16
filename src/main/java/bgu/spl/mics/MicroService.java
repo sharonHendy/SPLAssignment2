@@ -1,5 +1,7 @@
 package bgu.spl.mics;
 
+import bgu.spl.mics.application.services.GPUService;
+
 import java.util.HashMap;
 
 /**
@@ -154,15 +156,14 @@ public abstract class MicroService implements Runnable {
      */
     @Override
     public final void run() {
+        messageBus.register(this);
         initialize();
         while (!terminated) {
             try {
                 Message message= messageBus.awaitMessage(this);
                 Callback callback= map.get(message.getClass());
                 callback.call(message);
-            } catch (InterruptedException e) {
-
-            }
+            } catch (InterruptedException ignored) {}
         }
         messageBus.unregister(this);
     }

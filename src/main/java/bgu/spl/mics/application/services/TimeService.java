@@ -3,9 +3,11 @@ package bgu.spl.mics.application.services;
 import bgu.spl.mics.MessageBus;
 import bgu.spl.mics.MessageBusImpl;
 import bgu.spl.mics.MicroService;
+import bgu.spl.mics.application.messages.TerminationBroadcast;
 import bgu.spl.mics.application.messages.TickBroadcast;
 
 import java.util.Timer;
+import java.util.TimerTask;
 
 import static java.lang.Thread.sleep;
 
@@ -19,7 +21,6 @@ import static java.lang.Thread.sleep;
  * You MAY change constructor signatures and even add new public constructors.
  */
 public class TimeService extends MicroService{
-	private MessageBus messageBus;
 	private int speed;
 	private int duration;
 	private int totalTicks;
@@ -28,7 +29,6 @@ public class TimeService extends MicroService{
 
 	public TimeService(int speed, int duration) {
 		super("Time Service");
-		messageBus= MessageBusImpl.getInstance();
 		this.speed= speed;
 		this.duration= duration;
 		timer= new Timer();
@@ -37,21 +37,19 @@ public class TimeService extends MicroService{
 
 	@Override
 	protected void initialize() {
-		messageBus.register(this);
-
-	}
-
-	public void tick(){
-		while(totalTicks != duration){
-			try{
-				sleep(speed);
-			} catch (InterruptedException e) {
-
+		timer.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				sendBroadcast(new TickBroadcast());
+				totalTicks++;
+				if(totalTicks==duration){
+					sendBroadcast(new TerminationBroadcast());
+					terminate();
+					timer.cancel();
+				}
 			}
-			totalTicks++;
-			sendBroadcast(new TickBroadcast());
-		}
-		timer.cancel(); //??????????????
+		}, 0,speed); //0?
 	}
+
 
 }

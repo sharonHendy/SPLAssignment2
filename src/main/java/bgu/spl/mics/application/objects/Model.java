@@ -12,8 +12,8 @@ public class Model {
         return status;
     }
 
-    enum Status {PreTrained, Training, Trained, Tested}
-    enum Result {None, Good, Bad}
+    public enum Status {PreTrained, Training, Trained, Tested}
+    public enum Result {None, Good, Bad}
 
     private String name;
     private Data data;
@@ -21,12 +21,15 @@ public class Model {
     private Status status;
     private Result result;
 
-    Model(String name, Data data, Student student){
+    public Model(String name, Data data){
         this.name = name;
         this.data = data;
-        this.student = student;
         this.status = Status.PreTrained;
         this.result = Result.None;
+    }
+
+    public void setStudent(Student student) {
+        this.student = student;
     }
 
     public Data getData() {

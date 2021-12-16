@@ -1,7 +1,4 @@
 package bgu.spl.mics;
-
-import bgu.spl.mics.application.objects.Model;
-
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -34,11 +31,14 @@ public class Future<T> {
 	 * @post: this.isDone() == true
 	 * @post: @return == result
 	 */
-	public T get() throws InterruptedException {
+	public T get(){
 		//TODO: implement this.
 		synchronized (this){ //after we checked !isResolved before we get to wait no one can resolve it and get us deadlock
 			while(!isResolved){
-				this.wait();
+				try{
+					this.wait();
+				}
+				catch (InterruptedException ignore){}
 			}
 		}
 		return result;
@@ -81,10 +81,15 @@ public class Future<T> {
 	 * @post: @return:T == result || @return:T == null
 	 */
 	public T get(long timeout, TimeUnit unit) {
-		while(!isResolved){
-			this.wait(timeout, unit);
+		synchronized (this){
+			while(!isResolved){
+				try {
+					this.wait(unit.toMillis(timeout));
+				}
+				catch (InterruptedException ignore){}
+			}
+			return result;
 		}
-		return result;
 	}
 
 }

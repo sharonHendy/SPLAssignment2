@@ -2,6 +2,7 @@ package bgu.spl.mics.application.objects;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 
 /**
  * Passive object representing a single CPU.
@@ -10,34 +11,38 @@ import java.util.Collection;
  */
 public class CPU {
 
+    public enum CPUStatus {Processing, Waiting }
     private int cores;
     private Collection<DataBatch> data;
     private Cluster cluster;
-    private GPU sender;
     private int currTick;
     private DataBatch currDataBatch;
     private int ticksUntilDone;
-    private int totalTimeUnitsUsed;
-    private boolean isProcessing; //true if the CPU is currently processing a batch or just created
+    private CPUStatus status;
 
-    CPU(int cores, Cluster cluster){
-        totalTimeUnitsUsed=0;
+    public CPU(int cores, Cluster cluster){
         this.cores = cores;
-        data = new ArrayList<>();
+        data = new LinkedList<>(); //check
         this.cluster = cluster;
         currTick = 0;
-        isProcessing = true;
+        status= CPUStatus.Waiting;
     }
+
 
     /**
      *the CPUService will call this method when it receives a tickBroadcast from the messageBus.
      *@post: @currTick - @pre:currTick == 1
      */
-    void updateTick(){
+    public void updateTick(){
         currTick = currTick + 1;
-        totalTimeUnitsUsed++;
-        if(currTick== ticksUntilDone){
-            doneProcessing();
+        if(status==CPUStatus.Processing ){
+            cluster.setCPUTimeUnitsUsed();
+            if(currTick== ticksUntilDone){
+                doneProcessing();
+            }
+        }
+        else{
+            getDataBatch();
         }
     }
 
@@ -45,9 +50,12 @@ public class CPU {
      * gets dataBatches from the cluster.
      * @post: data.size() > @pre:data.size()
      */
-    void getDataBatches(DataBatch dataBatch){
-        data.add(dataBatch);
-        this.notifyAll();
+    public void getDataBatch(){
+        DataBatch db= cluster.sendDataBatchToCPU();
+        if(db!=null){
+            data.add(db);
+            startProcessing();
+        }
     }
 
     /**
@@ -55,18 +63,20 @@ public class CPU {
      * @pre: data.size() != 0
      * @post: currDataBatch != null
      */
-    void startProcessing(){
-        currDataBatch = ((ArrayList<DataBatch>)data).get(0);
-        Data.Type type = currDataBatch.getDataType();
-        if(type == Data.Type.Images){
-            ticksUntilDone = (32/cores) * 4;
-        }else if(type == Data.Type.Text){
-            ticksUntilDone = (32/cores)*2;
-        }else if(type == Data.Type.Tabular){
-            ticksUntilDone = (32/cores);
+    public void startProcessing(){
+        if(!data.isEmpty() && status==CPUStatus.Waiting){
+            currDataBatch= ((LinkedList<DataBatch>)data).peek();
+            Data.Type type = currDataBatch.getDataType();
+            if(type == Data.Type.Images){
+                ticksUntilDone = (32/cores) * 4;
+            }else if(type == Data.Type.Text){
+                ticksUntilDone = (32/cores)*2;
+            }else if(type == Data.Type.Tabular){
+                ticksUntilDone = (32/cores);
+            }
+            currTick = 0;
+            status= CPUStatus.Processing;
         }
-        currTick = 0;
-        isProcessing = true; //ready for ticks
     }
 
     /**
@@ -74,9 +84,9 @@ public class CPU {
      * @pre: data.size > 0
      * @post: data.size == @pre: data.size - 1
      */
-    void sendDataBatch(){
+    public void sendDataBatch(){
         cluster.receiveDataBatchFromCPU(currDataBatch);
-        ((ArrayList<DataBatch>)data).remove(0);
+        data.remove(currDataBatch);
     }
 
     /**
@@ -85,33 +95,11 @@ public class CPU {
      * @post: if(ticksUntilDone == currTick) {data.size() == @pre:data.size() -1;}
      *
      */
-    void doneProcessing(){
-        isProcessing = false; //ignores ticks until it started processing a new batch
+    public void doneProcessing(){
+        status= CPUStatus.Waiting;
         sendDataBatch();
         currDataBatch= null;
-        if(data.size() != 0){
-            startProcessing();
-            /*
-            //waits for the cluster to put batches in its queue
-            Thread t = new Thread(() -> {
-                while(!cluster.hasDataBatches(this)){
-                    try {
-                        cluster.wait(); //when the cluster puts batches in the CPU queue it does notifyAll
-                    } catch (InterruptedException e) {
-                    }
-                }
-                getDataBatches();
-                startProcessing();
-            });
-            t.start();
-             */
-
-        }else{
-            while (data.isEmpty()){
-                this.wait();
-            }
-            startProcessing();
-        }
+        getDataBatch();
     }
 
     public int getCurrTick() {
@@ -134,15 +122,8 @@ public class CPU {
         return currDataBatch;
     }
 
-    public Cluster getCluster() {
-        return cluster;
-    }
-
     public void setCurrTick(int currTick) {
         this.currTick = currTick;
     }
 
-    public int getTotalTimeUnitsUsed() {
-        return totalTimeUnitsUsed;
-    }
 }

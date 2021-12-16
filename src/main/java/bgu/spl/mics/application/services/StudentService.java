@@ -1,17 +1,9 @@
 package bgu.spl.mics.application.services;
 
-import bgu.spl.mics.Future;
-import bgu.spl.mics.MessageBus;
-import bgu.spl.mics.MessageBusImpl;
 import bgu.spl.mics.MicroService;
-import bgu.spl.mics.application.messages.PublishResultsEvent;
-import bgu.spl.mics.application.messages.TestModelEvent;
-import bgu.spl.mics.application.messages.TrainModelEvent;
+import bgu.spl.mics.application.messages.*;
 import bgu.spl.mics.application.objects.Model;
 import bgu.spl.mics.application.objects.Student;
-import com.sun.xml.internal.ws.api.message.Message;
-
-import java.util.LinkedList;
 
 /**
  * Student is responsible for sending the {@link TrainModelEvent},
@@ -23,29 +15,44 @@ import java.util.LinkedList;
  * You MAY change constructor signatures and even add new public constructors.
  */
 public class StudentService extends MicroService {
-    private MessageBus messageBus;
     private Student student;
-    private LinkedList<Future<Model>> modelsToTrain;
-    private LinkedList<Future<Model>> modelsToTest;
+    private int index;
 
     public StudentService(String name, Student student) {
         super(name);
-        messageBus= MessageBusImpl.getInstance();
         this.student= student;
+        index=0;
     }
 
     @Override
     protected void initialize() {
-        messageBus.register(this);
-        //subscribeBroadcast(PublishResultsEvent.class);
-        for(Model m: student.getModels()){
-            TrainModelEvent trainModel= new TrainModelEvent(m);
-            Future<Model> future= sendEvent(trainModel);
-            modelsToTrain.add(future);
+        if(student.getModels().size()>0){
+            sendEvent(new TrainModelEvent(student.getModels().get(0)));
+            index++;
         }
+        subscribeBroadcast(TerminationBroadcast.class, c -> terminate());
+        subscribeBroadcast(PublishConferenceBroadcast.class, c -> student.handelPublishConference(c.getModels()));
+        subscribeEvent(FinishedTrainEvent.class,c -> {
+            sendEvent(new TestModelEvent(c.getModel()));
+            if(index< student.getModels().size()){
+                sendEvent(new TrainModelEvent(student.getModels().get(index)));
+                index++;
+            }
+        });
+        subscribeEvent(FinishedTestEvent.class, c -> {
+            if(c.getModel().getResult()== Model.Result.Good){
+                sendEvent(new PublishResultsEvent(c.getModel()));
+            }
+        });
 
-
-
-
+        /*
+        while(index<student.getModels().size()){
+            Future<Model> future= sendEvent(new TrainModelEvent(student.getModels().get(index)));
+            Future<Model> future2= sendEvent(new TestModelEvent(future.get()));
+            if(future2.get().getResult()== Model.Result.Good){
+                sendEvent(new PublishResultsEvent(future2.get()));
+            }
+            index++;
+        }*/
     }
 }

@@ -11,7 +11,7 @@ public class Data {
     /**
      * Enum representing the Data type.
      */
-    enum Type {
+    public enum Type {
         Images, Text, Tabular
     }
 
@@ -19,13 +19,13 @@ public class Data {
     private int processed;
     private int size;
 
-    Data(Type type, int size){
+    public Data(Type type, int size){
         this.type = type;
         this.size = size;
         processed = 0;
     }
 
-    Type getType(){
+    public Type getType(){
         return type;
     }
 

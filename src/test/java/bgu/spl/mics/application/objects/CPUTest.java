@@ -21,7 +21,7 @@ public class CPUTest extends TestCase {
     @Test
     public void GetDataBatches(DataBatch dataBatch) {
         int before = CPU.getData().size();
-        CPU.getDataBatches();
+        CPU.getDataBatch();
         assertTrue(CPU.getData().size() > before);
     }
     @Test

@@ -10,7 +10,7 @@ public class Student {
     /**
      * Enum representing the Degree the student is studying for.
      */
-    enum Degree {
+    public enum Degree {
         MSc, PhD
     }
 
@@ -21,13 +21,24 @@ public class Student {
     private int papersRead;
     private ArrayList<Model> models;
 
-    Student(String name, String department, Degree status,ArrayList<Model> models){
+    public Student(String name, String department, Degree status,ArrayList<Model> models){
         this.name = name;
         this.department = department;
         this.status = status;
         publications = 0;
         papersRead = 0;
         this.models= models;
+    }
+
+    public synchronized void handelPublishConference(ArrayList<Model> models){ //todo synchronized needed????????
+        for(Model m:models){
+            if(models.contains(m)){
+                publications++;
+            }
+            else{
+                papersRead++;
+            }
+        }
     }
 
     public String getName() {
@@ -52,5 +63,13 @@ public class Student {
 
     public ArrayList<Model> getModels() {
         return models;
+    }
+
+    public void setPublications() {
+        publications++;
+    }
+
+    public void setPapersRead() {
+        papersRead++;
     }
 }

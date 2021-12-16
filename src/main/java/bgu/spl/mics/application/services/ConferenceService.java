@@ -2,6 +2,10 @@ package bgu.spl.mics.application.services;
 
 import bgu.spl.mics.MicroService;
 import bgu.spl.mics.application.messages.PublishConferenceBroadcast;
+import bgu.spl.mics.application.messages.PublishResultsEvent;
+import bgu.spl.mics.application.messages.TerminationBroadcast;
+import bgu.spl.mics.application.messages.TickBroadcast;
+import bgu.spl.mics.application.objects.ConferenceInformation;
 
 /**
  * Conference service is in charge of
@@ -13,14 +17,34 @@ import bgu.spl.mics.application.messages.PublishConferenceBroadcast;
  * You MAY change constructor signatures and even add new public constructors.
  */
 public class ConferenceService extends MicroService {
-    public ConferenceService(String name) {
-        super("Change_This_Name");
-        // TODO Implement this
+
+    private ConferenceInformation conferenceInformation;
+    private int numOfTicks;
+    private int date;
+    private int tickTime;
+
+
+    public ConferenceService(String name, int date, int TickTime) {
+        super(name);
+        conferenceInformation =new ConferenceInformation(name,date);
+        numOfTicks=0;
+        this.date =date;
+        this.tickTime= TickTime;
     }
 
     @Override
     protected void initialize() {
-        // TODO Implement this
+        subscribeBroadcast(TerminationBroadcast.class, c -> terminate());
+        subscribeBroadcast(TickBroadcast.class, c -> updateTick());
+        subscribeEvent(PublishResultsEvent.class, c ->conferenceInformation.addModel(c.getModel())  );
 
+    }
+
+    private void updateTick(){
+        numOfTicks++;
+        if(numOfTicks*tickTime==date){
+            sendBroadcast(new PublishConferenceBroadcast(conferenceInformation.getModels()));
+            terminate();
+        }
     }
 }

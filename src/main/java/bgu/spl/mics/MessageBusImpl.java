@@ -1,6 +1,5 @@
 package bgu.spl.mics;
 
-import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -12,7 +11,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class MessageBusImpl implements MessageBus {
 
 	private ConcurrentHashMap<Event<?>, Future<?>> futureHashMap;
-	private ConcurrentHashMap<MicroService,LinkedBlockingQueue<Message>> MSqueues;
+	private ConcurrentHashMap<MicroService, LinkedBlockingQueue<Message>> MSqueues;
 	private ConcurrentHashMap<Class<? extends Event<?>>, LinkedBlockingQueue<MicroService>> EventsSubscribers;
 	private ConcurrentHashMap<Class<? extends Broadcast>, LinkedBlockingQueue<MicroService>> BroadcastSubscribers;
 	private int numOfEventsSent;
@@ -22,7 +21,6 @@ public class MessageBusImpl implements MessageBus {
 		private static MessageBusImpl instance= new MessageBusImpl();
 	}
 
-	//private static MessageBusImpl single_instance=null;
 
 	private MessageBusImpl(){
 		numOfEventsSent=0;
@@ -40,10 +38,6 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m) {
-		/*
-		if(!EventsSubscribers.containsKey(type)){
-			EventsSubscribers.put(type, new LinkedBlockingQueue<MicroService>());
-		}*/
 		if(isMicroServiceRegistered(m)) {
 			EventsSubscribers.putIfAbsent(type, new LinkedBlockingQueue<MicroService>());
 			if (!isMicroServiceSubscribedEvent(m, type)) {
@@ -54,9 +48,6 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public void subscribeBroadcast(Class<? extends Broadcast> type, MicroService m) {
-		/*if(!BroadcastSubscribers.containsKey(type)){
-			BroadcastSubscribers.put(type, new LinkedBlockingQueue<MicroService>());
-		}*/
 		if(isMicroServiceRegistered(m)) {
 			BroadcastSubscribers.putIfAbsent(type, new LinkedBlockingQueue<MicroService>());
 			if (!isMicroServiceSubscribedBroadcast(m, type)) {
@@ -67,19 +58,19 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public <T> void complete(Event<T> e, T result) {
-		Future<T> future=(Future<T>) futureHashMap.get(e);
+		Future<T> future= (Future<T>) futureHashMap.get(e);
 		future.resolve(result);
 	}
 
 	@Override
 	public void sendBroadcast(Broadcast b) {
 		LinkedBlockingQueue<MicroService> ms= BroadcastSubscribers.get(b.getClass());
-		for (MicroService m : ms) {
+		for(MicroService m: ms){
 			MSqueues.get(m).add(b);
 		}
-		numOfBroadcastsSent++;
-		//notifyAll();
-
+		synchronized(this){
+			numOfBroadcastsSent++;
+		}
 	}
 
 
@@ -90,25 +81,19 @@ public class MessageBusImpl implements MessageBus {
 			return null;
 		}
 		//removes and add to the back of the queue
-		try{
-			EventsSubscribers.get(e.getClass()).put(ms);
-		}
-		catch (InterruptedException a){
-			//do something
-		}
+		EventsSubscribers.get(e.getClass()).add(ms);
 		MSqueues.get(ms).add(e);
 		Future<T> future= new Future<T>();
 		futureHashMap.put(e, future);
-		numOfEventsSent++;
-		//notifyAll();
-		return future; //TODO return a future
-
-
+		synchronized (this){
+			numOfEventsSent++;
+		}
+		return future;
 	}
 
 	@Override
 	public void register(MicroService m) {
-		MSqueues.put(m, new LinkedBlockingQueue<>());
+		MSqueues.put(m, new LinkedBlockingQueue<Message>());
 	}
 
 	@Override
@@ -120,10 +105,7 @@ public class MessageBusImpl implements MessageBus {
 		for(LinkedBlockingQueue<MicroService> ms: BroadcastSubscribers.values()){
 			ms.remove(m);
 		}
-
 		// what about the queue m have with the messages
-
-
 	}
 
 	@Override
@@ -131,12 +113,6 @@ public class MessageBusImpl implements MessageBus {
 		if(!isMicroServiceRegistered(m)){
 			throw new IllegalStateException();
 		}
-
-		/*while(MSqueues.get(m)==null){
-			wait();
-		}
-		return MSqueues.get(m).poll();
-		*/
 		return MSqueues.get(m).take(); //take- waiting if necessary until an element becomes available and throw interrupted exception
 	}
 

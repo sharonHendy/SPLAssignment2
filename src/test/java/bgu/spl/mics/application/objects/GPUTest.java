@@ -11,8 +11,7 @@ public class GPUTest {
     GPU GPU;
     @Before
     public void setUp(){
-        GPU = new GPU(RTX2080, new Model("noam",new Data(Data.Type.Images,3000),
-                new Student("sharon","cs", Student.Degree.PhD) ),Cluster.getInstance());
+        GPU = new GPU(RTX2080,Cluster.getInstance());
 
     }
 

@@ -1,15 +1,8 @@
 package bgu.spl.mics.application.objects;
 
-import bgu.spl.mics.Event;
-import bgu.spl.mics.MessageBusImpl;
-import bgu.spl.mics.application.messages.TestModelEvent;
-import com.sun.org.apache.xpath.internal.operations.Mod;
-
-
-import java.util.ArrayList;
+import bgu.spl.mics.application.services.GPUService;
 import java.util.Collection;
-import java.util.concurrent.LinkedBlockingQueue;
-
+import java.util.LinkedList;
 import static bgu.spl.mics.application.objects.GPU.Type.*;
 
 /**
@@ -23,50 +16,52 @@ public class GPU {
     /**
      * Enum representing the type of the GPU.
      */
-    enum Type {RTX3090, RTX2080, GTX1080}
+    public enum Type {RTX3090, RTX2080, GTX1080}
+    public enum GPUStatus {Training, Waiting}
 
     private Type type;
     private Model model;
     private  Cluster cluster;
     private int MaxNumOfProcessedBatches;
-    private MessageBusImpl messageBus;
-    private boolean isTraining;
     private int ticksUntilDone; //number of ticks it takes to train the current batch
     private int currTick;
-    private LinkedBlockingQueue<DataBatch> unprocessedDBs; //batches before processing
-    private LinkedBlockingQueue<DataBatch> processedDBs; //batches after processing
+    private LinkedList<DataBatch> unprocessedDBs; //batches before processing
+    private LinkedList<DataBatch> processedDBs; //batches after processing
     int numOfTrainedDBs; //number of data batches trained so far
     int numOfTotalDBs; //total number of data batches
-    int totalTimeUnitsUsed; //for statistics
     private DataBatch currDBInTraining; //current DB the GPU trains
+    private GPUService service;
+    private GPUStatus status;
 
 
-
-
-    GPU(Type type, Model model, Cluster cluster){
-        messageBus= MessageBusImpl.getInstance();
+    public GPU(Type type,Cluster cluster){
         this.type = type;
-        this.model = model;
         this.cluster = cluster;
-        unprocessedDBs = new LinkedBlockingQueue<>();
-        processedDBs = new LinkedBlockingQueue<>();
-
+        unprocessedDBs = new LinkedList<>();
+        processedDBs = new LinkedList<>();
         if (this.type == RTX3090){
             MaxNumOfProcessedBatches = 32;
+            ticksUntilDone=1;
         }else if(this.type == RTX2080){
             MaxNumOfProcessedBatches = 16;
+            ticksUntilDone=2;
         }else if(this.type == GTX1080){
             MaxNumOfProcessedBatches = 8;
+            ticksUntilDone=4;
         }
-
-        isTraining = false;
         currTick = 0;
         currDBInTraining = null;
-        prepareDataBatches();
+        status= GPUStatus.Waiting;
     }
 
-    GPU(Model model){
-        this.model = model;
+    public void reset(){
+        unprocessedDBs.clear();
+        processedDBs.clear();
+        currTick=0;
+        currDBInTraining= null;
+        numOfTrainedDBs=0;
+        service= null;
+        status= GPUStatus.Waiting;
     }
 
     /**
@@ -74,28 +69,23 @@ public class GPU {
      * @pre: model.getResult() == None
      * @post: model.getResult() == Good | Bad
      */
-    public void testModel(){
+    public void testModel(Model model){
         double num= Math.random();
         Model.Result result;
         if(model.getStudent().getStatus()==Student.Degree.PhD){
-            if(num<=0.8){
+            if(num<=0.8)
                 result= Model.Result.Good;
-            }
-            else{
+            else
                 result= Model.Result.Bad;
-            }
         }
         else{
-            if(num<=0.6){
+            if(num<=0.6)
                 result= Model.Result.Good;
-            }
-            else{
+            else
                 result= Model.Result.Bad;
-            }
         }
         model.setResult(result);
         model.setStatus(Model.Status.Tested);
-        //messageBus.complete( TestModelEvent , result);
     }
 
     /**
@@ -104,9 +94,13 @@ public class GPU {
      */
     public void updateTick(){
         currTick ++;
-        totalTimeUnitsUsed++;
-        if(currTick==ticksUntilDone){
-            doneTraining();
+        if(status==GPUStatus.Training){
+            cluster.setGPUTimeUnitsUsed();
+            if(currTick==ticksUntilDone)
+                doneTraining();
+        }
+        else{
+            receiveDataBatchFromCluster();
         }
     }
 
@@ -137,21 +131,27 @@ public class GPU {
      * @inv: GPU.getProcessedDBs().size() <= MaxNumOfProcessedBatches
      * @post: GPU.getProcessedDBs().size() == @pre:GPU.getProcessedDBs().size() + 1
      */
-    public void receiveDataBatchFromCluster(DataBatch dataBatch){
-        while(processedDBs.size()==getMaxNumOfProcessedBatches()){
-            this.wait();
+    public void receiveDataBatchFromCluster(){
+        if(processedDBs.size()<MaxNumOfProcessedBatches){
+            DataBatch dataBatch= cluster.sendDataBatchToGPU(this);
+            if(dataBatch!=null) {
+                processedDBs.add(dataBatch);
+                if (status == GPUStatus.Waiting) {
+                    startTraining();
+                }
+            }
         }
-        processedDBs.add(dataBatch);
-        this.notifyAll(); //for start training //this. is needed?
     }
 
     //TODO!! new
-    public void TrainModel(){
-        model.setStatus(Model.Status.Training);
+    public void trainModel(Model model){
+        reset();
+        this.model= model;
+        prepareDataBatches();
         for(int i=0; i<MaxNumOfProcessedBatches && !unprocessedDBs.isEmpty(); i++){
             sendDataBatchesToCluster();
         }
-        startTraining();
+        receiveDataBatchFromCluster();
     }
 
     /**
@@ -164,13 +164,11 @@ public class GPU {
      *
      */
     public void startTraining(){
-        while(processedDBs.isEmpty()) {
-            this.wait();
+        if(!processedDBs.isEmpty()){
+            currDBInTraining = processedDBs.peek();
+            currTick= 0;
+            status= GPUStatus.Training;
         }
-        currDBInTraining = processedDBs.peek();
-        currTick= 0;
-        isTraining= true;
-        sendDataBatchesToCluster();
     }
 
     /**
@@ -179,17 +177,16 @@ public class GPU {
      *                                        model.getData().getProcessed() == @pre:model.getData().getProcessed() + 1}
      */
     public void doneTraining(){
-        isTraining=false;
         model.getData().setProcessed(model.getData().getProcessed()+1000);
         numOfTrainedDBs++;
         processedDBs.poll();
-        this.notifyAll(); //for receive from cluster
+        status= GPUStatus.Waiting;
+        sendDataBatchesToCluster();
         if(numOfTrainedDBs==numOfTotalDBs){
             complete();
         }
         else{
-            cluster.sendDataBatchToGPU(this);
-            startTraining();
+            receiveDataBatchFromCluster();
         }
     }
 
@@ -202,7 +199,16 @@ public class GPU {
      */
     public void complete(){
         model.setStatus(Model.Status.Trained);
-        //TODO notify gpuservice/ msgbus
+        cluster.setModelsNames(model.getName());
+        service.setHasCompleted(true);
+    }
+
+    public GPUStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(GPUStatus status) {
+        this.status = status;
     }
 
     public Model getModel() {
@@ -213,16 +219,8 @@ public class GPU {
         return type;
     }
 
-    public Cluster getCluster() {
-        return cluster;
-    }
-
     public int getMaxNumOfProcessedBatches() {
         return MaxNumOfProcessedBatches;
-    }
-
-    public boolean isTraining() {
-        return isTraining;
     }
 
     public int getTicksUntilDone() {
@@ -245,9 +243,6 @@ public class GPU {
         return numOfTotalDBs;
     }
 
-    public int getTotalTimeUnitsUsed() {
-        return totalTimeUnitsUsed;
-    }
     public int getCurrTick() {
         return currTick;
     }
@@ -262,5 +257,9 @@ public class GPU {
 
     public void setCurrDBInTraining(DataBatch currDBInTraining) {
         this.currDBInTraining = currDBInTraining;
+    }
+
+    public void setService(GPUService service) {
+        this.service = service;
     }
 }
